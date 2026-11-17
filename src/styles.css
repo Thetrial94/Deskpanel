@@ -16,3 +16,36 @@ button{border:0}h1,h2,h3,p{margin:0}h1,h2,h3{font-weight:500}h1{letter-spacing:-
 @media(max-width:600px) and (orientation:portrait){.hero-clock.with-seconds{font-size:18vw}.giant-clock.with-seconds{font-size:18vw}}
 .fullscreen-button{gap:7px;padding:0 12px;border-color:var(--line);color:var(--accent);white-space:nowrap;font-size:12px}
 @media(max-width:600px){.topbar{gap:10px}.brand>span:last-child{display:none}.top-actions .fullscreen-button{min-height:40px}}
+
+[data-accent=gold],.accent-gold{--accent:#f5d57a}
+.music-layout{display:grid;grid-template-columns:.9fr 1.1fr;gap:clamp(30px,6vw,90px);align-items:center}
+.music-art{position:relative;display:flex;flex-direction:column;align-items:center;gap:28px;padding:24px}
+.music-record{width:min(30vw,360px);aspect-ratio:1;border-radius:50%;display:grid;place-items:center;background:repeating-radial-gradient(circle at center,#1e292b 0px,#1e292b 2px,#172123 3px,#172123 5px);border:1px solid var(--line);box-shadow:0 0 70px rgba(245,213,122,.05),0 16px 30px #0003}
+.music-label{display:grid;place-items:center;width:35%;aspect-ratio:1;border-radius:50%;background:#f5d57a;color:#29291f;box-shadow:0 0 0 10px #0e1619}
+.music-label .icon{width:45%;height:45%;stroke-width:1.2}
+.music-art-caption{font-size:10px;letter-spacing:.35em;color:var(--muted)}
+.music-player .eyebrow{font-size:10px;letter-spacing:.1em}
+.music-player h1{font-size:clamp(35px,5vw,67px);line-height:1.08;margin:22px 0}
+.music-connection{display:flex;gap:9px;align-items:center;font-size:13px}
+.music-connection i{width:6px;height:6px;border-radius:50%;background:var(--muted)}
+.music-connection i.connected{background:var(--accent)}
+.music-description{font-size:12px;margin-top:10px;max-width:400px}
+.music-controls{display:flex;gap:14px;align-items:center;margin:25px 0 15px}
+.music-skip,.music-toggle{display:inline-flex;align-items:center;justify-content:center;background:var(--panel);border:1px solid var(--line);border-radius:16px;min-width:52px;min-height:54px;color:var(--text)}
+.music-toggle{gap:8px;padding:0 20px;background:var(--accent);color:#20271d;font-size:13px;font-weight:600;min-height:64px}
+.music-toggle>.icon{width:18px;height:18px}.music-skip:hover{border-color:var(--accent)}.music-toggle:hover{filter:brightness(1.08)}
+.music-note{font-size:10px;max-width:370px;line-height:1.6}.music-feedback{min-height:30px;margin-top:12px;font-size:11px;color:var(--accent);max-width:400px;line-height:1.5}
+.music-launch{margin-bottom:12px;font-size:12px}
+@media(max-width:1100px) and (min-width:601px){.screen-nav{gap:2px}.nav-item{padding-left:8px;padding-right:8px}.screen-meta{min-width:120px}.footer-hint{display:none}.bottom{gap:8px}}
+@media(max-width:600px) and (orientation:portrait){
+ .music-layout{grid-template-columns:1fr;gap:22px;max-width:430px;margin:auto}.music-art{padding:0;gap:14px}.music-record{width:180px}.music-art-caption{display:none}
+ .music-player{text-align:center}.music-player .eyebrow,.music-connection,.music-controls{justify-content:center}.music-player h1{font-size:35px;margin:16px 0}.music-player h1 br{display:none}.music-player h1 .muted:before{content:" "}
+ .music-controls{gap:10px;margin:20px 0 14px}.music-description,.music-note,.music-feedback{margin-left:auto;margin-right:auto}.music-toggle{padding:0 14px}.music-skip{min-width:48px}
+ .nav-item{padding:7px 3px;min-width:30px;font-size:8px}.screen-nav{overflow-x:auto;justify-content:space-between}
+}
+@media(orientation:landscape) and (max-height:520px){
+ .music-layout{gap:30px;grid-template-columns:.8fr 1.2fr}.music-art{padding:0;gap:14px}.music-record{width:min(43vh,220px)}.music-art-caption{font-size:8px}
+ .music-player h1{font-size:32px;margin:12px 0}.music-player h1 br{display:none}.music-player h1 .muted:before{content:" "}
+ .music-player .eyebrow{font-size:9px}.music-connection{font-size:11px}.music-description{font-size:10px;margin-top:6px}.music-controls{margin:13px 0 10px;gap:10px}.music-toggle{min-height:46px;font-size:11px}.music-skip{min-width:44px;min-height:44px}.music-note{font-size:9px}.music-feedback{font-size:10px;min-height:25px;margin-top:7px}.music-launch{min-height:35px;padding:8px 15px;font-size:11px}
+}
+@media(max-height:700px) and (orientation:portrait){.music-record{width:130px}.music-layout{gap:14px}.music-player h1{font-size:29px}.music-player .eyebrow{font-size:8px}}

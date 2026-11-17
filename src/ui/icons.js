@@ -1,4 +1,7 @@
 const paths = {
+  music: '<path d="M9 18V5l11-2v13M9 8l11-2"/><ellipse cx="6" cy="18" rx="3" ry="2"/><ellipse cx="17" cy="16" rx="3" ry="2"/>',
+  previous: '<path d="M5 5v14m14-14L8 12l11 7Z"/>',
+  next: '<path d="M19 5v14M5 5l11 7-11 7Z"/>',
   overview: '<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   weather: '<path d="M6 16a4 4 0 1 1 1-7.9A5 5 0 1 1 18 16H6Z"/><path d="M8 19v2m4-2v2m4-2v2"/>',

@@ -6,16 +6,17 @@ import { icon } from './ui/icons.js';
 import { screens, screenById } from './screens/registry.js';
 import { WeatherSource, searchCities } from './data/weather.js';
 import { AgentSource } from './data/agents.js';
+import { MusicSource } from './data/music.js';
 
 let storage;
 try { storage = window.localStorage; } catch { storage = {getItem:()=>null,setItem:()=>{throw new Error('unavailable');}}; }
 let settings = loadSettings(storage);
-const focus = new FocusTimer(storage), weather = new WeatherSource(), agents = new AgentSource();
+const focus = new FocusTimer(storage), weather = new WeatherSource(), agents = new AgentSource(), music = new MusicSource();
 const stage = document.querySelector('#stage'), nav = document.querySelector('#screen-nav'), dialog = document.querySelector('#settings-dialog');
 const rotation = new RotationClock(settings.interval*1000,performance.now());
 let activeId = settings.enabledScreens.includes(location.hash.slice(1)) ? location.hash.slice(1) : settings.screenOrder.find(id=>settings.enabledScreens.includes(id));
 let cleanup = () => {}, transitionTimer, toastTimer, lastStatus = '', pointer = null, wakeLock = null, wakeWanted = false, cityRequest = null;
-const context = {settings:()=>settings,focus,weather,agents};
+const context = {settings:()=>settings,focus,weather,agents,music};
 const enabled = () => settings.screenOrder.filter(id=>settings.enabledScreens.includes(id));
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 function toast(message) { clearTimeout(toastTimer); const node = document.querySelector('#toast'); node.textContent = message; node.classList.add('visible'); toastTimer = setTimeout(()=>node.classList.remove('visible'),3600); }

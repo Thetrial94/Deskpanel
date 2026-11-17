@@ -1,0 +1,52 @@
+name: Build DeskPanel music client
+on:
+  push:
+    paths:
+      - 'integrations/yamusic-rs/**'
+      - '.github/workflows/music-client.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: deskpanel
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          repository: SpolzerMod/yamusic-rs
+          ref: 04c757400595fdcd2b7d8b78d87e03e6d95ebeab
+          path: music
+          persist-credentials: false
+      - name: Apply local bridge
+        run: python deskpanel/integrations/yamusic-rs/patch.py music
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: music
+      - name: Build and test
+        working-directory: music
+        run: |
+          cargo test --release --locked
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo build --release --locked
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Package binary and source changes
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory bundle | Out-Null
+          Copy-Item music/target/release/yamusic-rs.exe bundle/
+          Copy-Item music/LICENSE bundle/
+          Copy-Item deskpanel/integrations/yamusic-rs/deskpanel.rs bundle/
+          Copy-Item deskpanel/integrations/yamusic-rs/patch.py bundle/
+          'Upstream: SpolzerMod/yamusic-rs @ 04c757400595fdcd2b7d8b78d87e03e6d95ebeab (v1.0.2). Start with --deskpanel to enable local status and volume.' | Set-Content bundle/BUILD.txt
+          (Get-FileHash bundle/yamusic-rs.exe -Algorithm SHA256).Hash.ToLower() | Set-Content bundle/SHA256.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: yamusic-rs-deskpanel
+          path: bundle/
+          retention-days: 14
