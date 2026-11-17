@@ -4,7 +4,7 @@ import {DeviceAccess} from '../server/access.mjs';
 import {validateConfig} from '../server/connections.mjs';
 import {Features} from '../server/features.mjs';
 import {createAppServer} from '../server/index.mjs';
-import {parseCalendar,Calendar} from '../server/calendar.mjs';
+import {parseCalendar,Calendar,fetchCalendar} from '../server/calendar.mjs';
 import {Home,mapHA,mapYandex} from '../server/home.mjs';
 import {Computer} from '../server/computer.mjs';
 import {BreakTimer} from '../src/core/breaks.js';
@@ -107,4 +107,28 @@ test('computer commands validate values before native execution',async()=>{
  const pc=new Computer();
  for(const [command,value] of [['volume',101],['volume',1.1],['mic','false'],['lock',false],['shell','anything']])await assert.rejects(pc.run(command,value));
  const stats=pc.metrics();assert.equal(stats.connection,'connected');assert.ok(stats.memory.total>0);assert.ok(stats.memory.used<=stats.memory.total);
+});
+test('calendar follows the corporate export redirect and parses its response',async()=>{
+ const start=new Date(Date.now()+3600000).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');
+ const end=new Date(Date.now()+7200000).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');
+ const calls=[],source='https://calendar.yandex-team.ru/export/ics.xml?private_token=test-only';
+ const calendar=new Calendar(store({calendar:{url:source}}),async(url,options)=>{
+  calls.push(url);assert.equal(options.redirect,'manual');
+  if(calls.length===1)return new Response(null,{status:301,headers:{Location:'https://api.calendar.yandex-team.ru/export/ics.xml?private_token=test-only'}});
+  return new Response(ics([event(['UID:redirect-test','DTSTART:'+start,'DTEND:'+end,'SUMMARY:Fixture'])]));
+ });
+ const result=await calendar.status();assert.equal(result.connection,'connected');assert.equal(result.events.length,1);assert.equal(calls.length,2);
+ assert.ok(!JSON.stringify(result).includes('private_token'));
+});
+test('calendar does not forward private links to other hosts, HTTP or credential URLs',async()=>{
+ for(const target of ['https://evil.test/export','http://api.calendar.yandex-team.ru/export','https://api.calendar.yandex-team.ru.evil.test/export','https://user:password@api.calendar.yandex-team.ru/export','https://api.calendar.yandex-team.ru:8443/export']){
+  let calls=0;
+  await assert.rejects(fetchCalendar('https://calendar.yandex-team.ru/export?private_token=test-only',async()=>{calls++;return new Response(null,{status:302,headers:{Location:target}});}),/calendar_redirect_rejected/);
+  assert.equal(calls,1);
+ }
+});
+test('calendar bounds redirect loops and does not copy private query into Location',async()=>{
+ const calls=[];
+ await assert.rejects(fetchCalendar('https://calendar.yandex-team.ru/export?private_token=test-only',async url=>{calls.push(url);return new Response(null,{status:307,headers:{Location:'/export'}});}),/calendar_redirect_failed/);
+ assert.equal(calls.length,4);assert.equal(calls[1],'https://calendar.yandex-team.ru/export');
 });
