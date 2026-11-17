@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#101719">
+  <meta name="description" content="Часы, погода и агенты. Твой рабочий стол с другого ракурса.">
+  <title>DeskPanel — твой маленький экран</title>
+  <link rel="icon" href="/public/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/src/styles.css">
+  <script type="module" src="/src/app.js"></script>
+</head>
+<body>
+  <div class="ambient" aria-hidden="true"></div>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#overview" aria-label="DeskPanel — обзор"><span class="brand-mark">d<span>p</span></span><span>desk<span class="muted">panel</span><span class="brand-dot"></span></span></a>
+      <div class="top-date" id="top-date"></div>
+      <div class="top-actions">
+        <span class="local-label"><i></i> твое пространство</span>
+        <button id="rotation-toggle" class="icon-button" aria-label="Приостановить смену экранов" title="Приостановить смену экранов"></button>
+        <button id="fullscreen-toggle" class="icon-button" aria-label="На весь экран" title="На весь экран"></button>
+        <button id="settings-open" class="icon-button" aria-label="Настройки" title="Настройки"></button>
+      </div>
+    </header>
+    <main id="stage" class="stage" tabindex="0" aria-label="Экраны панели"></main>
+    <footer class="bottom">
+      <div class="screen-meta"><span id="screen-counter">01 / 07</span><span id="rotation-state">Автосмена · 20 сек</span></div>
+      <nav id="screen-nav" class="screen-nav" aria-label="Выбор экрана"></nav>
+      <div class="footer-hint"><span>свайп для смены</span><span id="swipe-hint"></span></div>
+    </footer>
+    <div class="rotation-track" aria-hidden="true"><div id="rotation-progress"></div></div>
+  </div>
+  <dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title">
+    <div class="settings-header"><div><span class="eyebrow">СДЕЛАЙ СВОИМ</span><h2 id="settings-title">Твой экран</h2></div><button id="settings-close" class="icon-button" aria-label="Закрыть настройки"></button></div>
+    <div class="settings-body">
+      <section class="settings-section">
+        <h3>Ритм</h3>
+        <label class="setting-row" for="setting-auto"><span>Менять экраны автоматически<small>Свайп и стрелки работают всегда</small></span><input id="setting-auto" type="checkbox" role="switch"></label>
+        <label class="setting-row" for="setting-interval"><span>Время на одном экране</span><select id="setting-interval"><option value="10">10 секунд</option><option value="20">20 секунд</option><option value="30">30 секунд</option><option value="60">1 минута</option><option value="120">2 минуты</option></select></label>
+        <label class="setting-row" for="setting-resume"><span>Пауза после касания</span><select id="setting-resume"><option value="15">15 секунд</option><option value="30">30 секунд</option><option value="60">1 минута</option><option value="120">2 минуты</option></select></label>
+      </section>
+      <section class="settings-section"><h3>Экраны <span class="small muted">хотя бы один</span></h3><div id="screen-settings"></div></section>
+      <section class="settings-section">
+        <h3>Отображение</h3>
+        <label class="setting-row" for="setting-seconds"><span>Секунды на часах</span><input id="setting-seconds" type="checkbox" role="switch"></label>
+        <label class="setting-row" for="setting-night"><span>Приглушать ночью<small>С 22:00 до 07:00 по времени телефона</small></span><input id="setting-night" type="checkbox" role="switch"></label>
+        <button id="wake-lock" class="button button-soft full-width">Не выключать экран</button>
+        <p class="settings-note" id="wake-note">На телефоне также можно включить удержание экрана в киоск-браузере.</p>
+      </section>
+      <section class="settings-section">
+        <h3>Погода</h3>
+        <label class="field-label" for="city-search">Город</label>
+        <form id="city-form" class="city-form"><input id="city-search" name="city" placeholder="Например, Москва" autocomplete="off" maxlength="80"><button class="button button-soft" type="submit">Найти</button></form>
+        <div id="city-results" class="city-results" aria-live="polite"></div>
+        <p id="selected-city" class="settings-note"></p>
+        <button id="city-clear" class="text-button">Убрать город</button>
+      </section>
+      <p class="settings-note">Настройки сохраняются в этом браузере. Подключения Codex и Claude пока не настроены.</p>
+    </div>
+    <div class="settings-footer"><button id="settings-done" class="button button-primary full-width">Готово</button></div>
+  </dialog>
+  <div id="toast" class="toast" role="status"></div>
+  <noscript>Для работы панели включи JavaScript в браузере.</noscript>
+</body>
+</html>

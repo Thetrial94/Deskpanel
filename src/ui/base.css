@@ -1,0 +1,2 @@
+/* Local-only base: no font or stylesheet requests to external servers. */
+html{background:#101719;scrollbar-gutter:stable}::selection{background:#d8f78b;color:#16211b}
