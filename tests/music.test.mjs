@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createAppServer} from '../server/index.mjs';
-import {MusicBridge} from '../server/music.mjs';
+import {MusicBridge,normalizePlayerState} from '../server/music.mjs';
 async function setup(t){
- const commands=[];
+ const commands=[],values=[];
  const music={
   status:async()=>({schemaVersion:1,connection:'connected',playback:'unknown',track:null}),
-  command:async command=>{commands.push(command);return {accepted:true,error:null};},
+  command:async (command,value)=>{commands.push(command);values.push(value);return {accepted:true,error:null};},
   close:()=>{}
  };
  const server=createAppServer({music});
@@ -14,7 +14,7 @@ async function setup(t){
  t.after(()=>new Promise(resolve=>server.close(resolve)));
  const base='http://127.0.0.1:'+server.address().port;
  const headers={Origin:base,'Content-Type':'application/json','X-DeskPanel':'1','Sec-Fetch-Site':'same-origin'};
- return {base,headers,commands};
+ return {base,headers,commands,values};
 }
 test('music status is truthful and supported commands are delivered once',async t=>{
  const {base,headers,commands}=await setup(t);
@@ -66,4 +66,27 @@ test('non-Windows bridge reports unsupported without launching any process',asyn
  assert.equal((await bridge.command('toggle')).accepted,false);
  await assert.rejects(bridge.command('arbitrary'),/invalid_command/);
  bridge.close();
+});
+
+test('volume accepts only whole percentages and rejects extra fields',async t=>{
+ const {base,headers,commands,values}=await setup(t);
+ for(const value of [-1,101,1.5,"50",null]){
+  assert.equal((await fetch(base+'/api/music',{method:'POST',headers,body:JSON.stringify({command:'volume',value})})).status,400);
+ }
+ for(const value of [0,50,100]){
+  assert.equal((await fetch(base+'/api/music',{method:'POST',headers,body:JSON.stringify({command:'volume',value})})).status,200);
+ }
+ assert.deepEqual(commands,['volume','volume','volume']);assert.deepEqual(values,[0,50,100]);
+});
+test('player snapshots must be fresh and belong to the current process',()=>{
+ const good={schemaVersion:1,pid:123,updatedAt:10000,playback:'playing',volume:60,track:{title:'Track',artist:'Artist'}};
+ assert.deepEqual(normalizePlayerState(good,123,11000),{enhanced:true,playback:'playing',volume:60,track:{title:'Track',artist:'Artist'},updatedAt:new Date(10000).toISOString()});
+ assert.deepEqual(normalizePlayerState(good,456,11000),{});
+ assert.deepEqual(normalizePlayerState(good,123,15000),{});
+ assert.deepEqual(normalizePlayerState({...good,updatedAt:13000},123,11000),{});
+ for(const invalid of [{volume:-1},{volume:101},{volume:'60'},{playback:'guessed'},{schemaVersion:2}]){
+  assert.deepEqual(normalizePlayerState({...good,...invalid},123,11000),{});
+ }
+ assert.equal(normalizePlayerState({...good,playback:'paused'},123,11000).playback,'paused');
+ assert.equal(normalizePlayerState({...good,track:null,playback:'idle'},123,11000).track,null);
 });

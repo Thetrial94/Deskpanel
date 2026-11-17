@@ -8,7 +8,7 @@ export class MusicSource {
   subscribe(fn) {
     this.listeners.add(fn);fn(this.snapshot,this.pending,this.message);
     if(this.listeners.size===1){
-      this.refresh();this.timer=setInterval(()=>{if(!document.hidden)this.refresh();},4000);
+      this.refresh();this.timer=setInterval(()=>{if(!document.hidden)this.refresh();},1000);
       document.addEventListener('visibilitychange',this.onVisible);
     }
     return ()=>{
@@ -29,17 +29,17 @@ export class MusicSource {
     } catch { this.snapshot={connection:'disconnected',playback:'unknown',track:null}; }
     finally {clearTimeout(timer);this.refreshing=false;this.emit();}
   }
-  async command(command) {
+  async command(command,value) {
     if(this.pending)return;
     this.pending=true;this.message='Отправляем команду…';this.emit();
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
     try {
-      const response=await fetch('/api/music',{method:'POST',headers:{'Content-Type':'application/json','X-DeskPanel':'1'},body:JSON.stringify({command}),signal:controller.signal});
+      const response=await fetch('/api/music',{method:'POST',headers:{'Content-Type':'application/json','X-DeskPanel':'1'},body:JSON.stringify({command,value}),signal:controller.signal});
       const data=await response.json();
       if(!response.ok||!data.accepted)throw Error('rejected');
       this.message=command==='launch'?'Запускаем плеер на компьютере…':'Команда отправлена плееру';
     } catch(error) {
       this.message=error.message==='rejected'?'Команда не выполнена. Проверь плеер на компьютере.':'Не удалось подтвердить команду. Проверь плеер перед повторным нажатием.';
-    } finally {clearTimeout(timer);this.pending=false;this.emit();this.refresh();}
+    } finally {clearTimeout(timer);await new Promise(resolve=>setTimeout(resolve,650));this.pending=false;await this.refresh();this.emit();}
   }
 }

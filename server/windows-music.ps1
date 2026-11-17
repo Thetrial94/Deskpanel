@@ -30,14 +30,14 @@ function Get-MusicTarget {
   return @{connection='different_installation'; handle=[IntPtr]::Zero}
  }
  if ([DeskPanelMusicNative]::IsHungAppWindow($handle)) { return @{connection='unavailable'; handle=[IntPtr]::Zero} }
- return @{connection='connected'; handle=$handle}
+ return @{connection='connected'; handle=$handle; pid=$ownerId}
 }
 while ($null -ne ($line = [Console]::ReadLine())) {
  $request = $null
  try {
   $request = $line | ConvertFrom-Json
   $action = [string]$request.action
-  if ($action -notin @('status','launch','toggle','next','previous')) { throw 'invalid_command' }
+  if ($action -notin @('status','launch','toggle','next','previous','volume')) { throw 'invalid_command' }
   $target = Get-MusicTarget
   $accepted = $false
   $errorCode = $null
@@ -47,20 +47,30 @@ while ($null -ne ($line = [Console]::ReadLine())) {
     $info.FileName = $exe
     $info.WorkingDirectory = [IO.Path]::GetDirectoryName($exe)
     $info.UseShellExecute = $true
-    $info.WindowStyle = [Diagnostics.ProcessWindowStyle]::Hidden
+    $info.WindowStyle = [Diagnostics.ProcessWindowStyle]::Normal
+    $info.Arguments = '--deskpanel'
     [void][Diagnostics.Process]::Start($info)
     $accepted = $true
-   } elseif ($target.connection -eq 'connected') { $accepted = $true }
+   } elseif ($target.connection -eq 'connected') {
+    $accepted = [DeskPanelMusicNative]::PostMessage($target.handle, 0x8002, [IntPtr]::Zero, [IntPtr]::Zero)
+    if (-not $accepted) { $errorCode = 'command_failed' }
+   }
    else { $errorCode = $target.connection }
   } elseif ($action -ne 'status') {
    if ($target.connection -ne 'connected') { $errorCode = $target.connection }
    else {
-    $key = @{toggle=1; next=2; previous=3}[$action]
-    $accepted = [DeskPanelMusicNative]::PostMessage($target.handle, 0x0312, [IntPtr]$key, [IntPtr]::Zero)
+    if ($action -eq 'volume') {
+     $volume = $request.value
+     if ($volume -isnot [int] -or $volume -lt 0 -or $volume -gt 100) { throw 'invalid_volume' }
+     $accepted = [DeskPanelMusicNative]::PostMessage($target.handle, 0x8003, [IntPtr]$volume, [IntPtr]::Zero)
+    } else {
+     $key = @{toggle=1; next=2; previous=3}[$action]
+     $accepted = [DeskPanelMusicNative]::PostMessage($target.handle, 0x0312, [IntPtr]$key, [IntPtr]::Zero)
+    }
     if (-not $accepted) { $errorCode = 'command_failed' }
    }
   }
-  @{id=$request.id; connection=$target.connection; accepted=$accepted; error=$errorCode} | ConvertTo-Json -Compress | ForEach-Object {[Console]::WriteLine($_)}
+  @{id=$request.id; connection=$target.connection; pid=$target.pid; accepted=$accepted; error=$errorCode} | ConvertTo-Json -Compress | ForEach-Object {[Console]::WriteLine($_)}
  } catch {
   @{id=$request.id; connection='unavailable'; accepted=$false; error='bridge_error'} | ConvertTo-Json -Compress | ForEach-Object {[Console]::WriteLine($_)}
  }

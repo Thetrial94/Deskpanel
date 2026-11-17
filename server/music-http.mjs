@@ -27,8 +27,9 @@ export async function handleMusic(req,send,bridge) {
   try {
     for await(const chunk of req){size+=chunk.length;if(size>1024){send(413,JSON.stringify({error:'body_too_large'}));return;}body+=chunk;}
     const data=JSON.parse(body);
-    if(!data || !MUSIC_COMMANDS.has(data.command) || Object.keys(data).length!==1){send(400,JSON.stringify({error:'invalid_command'}));return;}
-    const result=await bridge.command(data.command);
+    if(!data || !MUSIC_COMMANDS.has(data.command) ||
+       (data.command==='volume' ? Object.keys(data).length!==2 || !Number.isInteger(data.value) || data.value<0 || data.value>100 : Object.keys(data).length!==1)){send(400,JSON.stringify({error:'invalid_command'}));return;}
+    const result=await bridge.command(data.command,data.value);
     send(result.accepted?200:409,JSON.stringify(result));
   } catch { send(400,JSON.stringify({error:'command_failed'})); }
 }

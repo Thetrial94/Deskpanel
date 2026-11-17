@@ -1,4 +1,5 @@
 const paths = {
+  volume: '<path d="M11 4 6 8H3v8h3l5 4V4Zm4 4a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/>',
   music: '<path d="M9 18V5l11-2v13M9 8l11-2"/><ellipse cx="6" cy="18" rx="3" ry="2"/><ellipse cx="17" cy="16" rx="3" ry="2"/>',
   previous: '<path d="M5 5v14m14-14L8 12l11 7Z"/>',
   next: '<path d="M19 5v14M5 5l11 7-11 7Z"/>',
