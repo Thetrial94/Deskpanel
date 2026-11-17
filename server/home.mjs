@@ -1,10 +1,28 @@
 const short=x=>String(x||'').slice(0,160);
+const propertyValue=p=>{
+ const value=p.state?.value,instance=p.state?.instance;
+ if(p.type==='devices.properties.float'&&Number.isFinite(value)){
+  const units={temperature:'°C',humidity:'%',battery_level:'%',illumination:'лк',power:'Вт',voltage:'В',co2_level:'ppm'};
+  return units[instance]?Math.round(value*10)/10+' '+units[instance]:null;
+ }
+ if(p.type==='devices.properties.event'){
+  const labels={water_leak:{dry:'Сухо',leak:'Протечка'},open:{opened:'Открыто',closed:'Закрыто'},motion:{detected:'Движение',not_detected:'Нет движения'},smoke:{detected:'Дым',not_detected:'Дыма нет'},button:{click:'Нажатие',double_click:'Двойное нажатие',long_press:'Удержание'}};
+  return labels[instance]?.[value]||null;
+ }
+ return null;
+};
 export function mapYandex(data){
  if(data.status!=='ok'||!Array.isArray(data.devices))throw Error('invalid_home');
- return data.devices.slice(0,100).map(d=>{
+ const rooms=Array.isArray(data.rooms)?data.rooms:[],houses=Array.isArray(data.households)?data.households:[];
+ return data.devices.slice(0,200).map(d=>{
   const cap=d.capabilities?.find(c=>c.type==='devices.capabilities.on_off');
   const control=['devices.types.light','devices.types.socket','devices.types.switch'].some(t=>d.type===t||d.type?.startsWith(t+'.'));
-  return {id:short(d.id),name:short(d.name),kind:short(d.type),on:typeof cap?.state?.value==='boolean'?cap.state.value:null,controllable:!!cap&&control};
+  const room=rooms.find(r=>r.id===d.room)||rooms.find(r=>r.devices?.includes(d.id));
+  const houseId=d.household_id||room?.household_id||'',house=houses.find(h=>h.id===houseId);
+  const readings=(d.properties||[]).map(propertyValue).filter(Boolean);
+  return {id:short(d.id),name:short(d.name),kind:short(d.type),on:typeof cap?.state?.value==='boolean'?cap.state.value:null,controllable:!!cap&&control,
+   room:{id:short(room?.id||d.room||''),name:short(room?.name||'Без комнаты')},household:{id:short(houseId),name:short(house?.name||'Дом')},
+   value:readings.length?readings.join(' · '):null};
  });
 }
 export function mapHA(data){

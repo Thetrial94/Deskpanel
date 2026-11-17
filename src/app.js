@@ -35,7 +35,7 @@ function mountActive(direction = 0) {
   const plugin = screenById.get(activeId);
   stage.className = 'stage accent-'+plugin.accent;
   document.documentElement.dataset.accent = plugin.accent;
-  stage.innerHTML = '';
+  stage.innerHTML = ''; stage.scrollTop = 0;
   cleanup = plugin.mount(stage,context) || (()=>{});
   stage.setAttribute('aria-label',plugin.title);
   if (!prefersReducedMotion.matches && direction) {
@@ -109,6 +109,7 @@ nav.addEventListener('click',e=>{const button=e.target.closest('[data-screen]');
 document.querySelector('.brand').addEventListener('click',e=>{e.preventDefault();go('overview');});
 stage.addEventListener('click',e=>{
   if(e.target.closest('[data-settings]'))openSettings();
+  const hide=e.target.closest('[data-hide-screen]');if(hide&&settings.enabledScreens.length>1){settings.enabledScreens=settings.enabledScreens.filter(id=>id!==hide.dataset.hideScreen);persist();return;}
   const link=e.target.closest('[data-go]');if(link)go(link.dataset.go);
 });
 stage.addEventListener('pointerdown',e=>{
@@ -191,7 +192,7 @@ document.querySelector('#swipe-hint').innerHTML=icon('left')+icon('right');
 function updateDate(){document.querySelector('#top-date').textContent=formatDate(new Date(),{weekday:'short'});updateDim();}
 updateDate();setInterval(updateDate,30000);
 mountActive();updateRotationButton();weather.setCity(settings.city);agents.refresh();
-setInterval(()=>agents.refresh(),15000);setInterval(()=>weather.refresh(),60000);
+setInterval(()=>{if(!document.hidden)agents.refresh();},3000);setInterval(()=>weather.refresh(),60000);
 const breakReminder=document.querySelector('#break-reminder');
 breakReminder.addEventListener('click',()=>{if(!enabled().includes('breaks')){settings.enabledScreens.push('breaks');persist();}go('breaks');});
 setInterval(()=>{

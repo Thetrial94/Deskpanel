@@ -1,3 +1,6 @@
+import {execFileSync} from 'node:child_process';
+import {calendarDateLabel} from '../src/core/calendar.js';
+import {homeRooms,deviceState} from '../src/core/home.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DeviceAccess} from '../server/access.mjs';
@@ -131,4 +134,18 @@ test('calendar bounds redirect loops and does not copy private query into Locati
  const calls=[];
  await assert.rejects(fetchCalendar('https://calendar.yandex-team.ru/export?private_token=test-only',async url=>{calls.push(url);return new Response(null,{status:307,headers:{Location:'/export'}});}),/calendar_redirect_failed/);
  assert.equal(calls.length,4);assert.equal(calls[1],'https://calendar.yandex-team.ru/export');
+});
+
+test('all-day range stays November 19-20 regardless of server timezone',()=>{
+ const text=ics([event(['UID:all-day-range','DTSTART;VALUE=DATE:20261119','DTEND;VALUE=DATE:20261121','SUMMARY:Fixture'])]);
+ const script="import {parseCalendar} from './server/calendar.mjs'; console.log(JSON.stringify(await parseCalendar("+JSON.stringify(text)+",Date.parse('2026-11-18T07:00:00Z'))));";
+ for(const zone of ['UTC','Europe/Moscow','Asia/Tokyo','America/New_York']){
+  const events=JSON.parse(execFileSync(process.execPath,['--input-type=module','-e',script],{env:{...process.env,TZ:zone},encoding:'utf8',windowsHide:true}));
+  assert.equal(events[0].start,'2026-11-18T21:00:00.000Z',zone);assert.equal(events[0].end,'2026-11-20T21:00:00.000Z',zone);
+  const label=calendarDateLabel(events[0]);assert.match(label,/19/);assert.match(label,/20/);assert.doesNotMatch(label,/18|21/);
+ }
+});
+test('home rooms preserve household identity and sensor readings',()=>{
+ const devices=mapYandex({status:'ok',households:[{id:'h1',name:'House A'},{id:'h2',name:'House B'}],rooms:[{id:'r1',name:'Room',household_id:'h1',devices:['a']},{id:'r2',name:'Room',household_id:'h2',devices:['b']}],devices:[{id:'a',name:'Lamp',type:'devices.types.light',room:'r1',capabilities:[{type:'devices.capabilities.on_off',state:{value:true}}]},{id:'b',name:'Leak sensor',type:'devices.types.sensor.water_leak',room:'r2',properties:[{type:'devices.properties.event',state:{instance:'water_leak',value:'dry'}}]},{id:'c',name:'Other'}]});
+ const rooms=homeRooms(devices);assert.equal(rooms.length,3);assert.notEqual(rooms[0].id,rooms[1].id);assert.equal(rooms.at(-1).name,'Без комнаты');assert.equal(deviceState(devices[1]),'Сухо');assert.equal(devices[1].controllable,false);
 });

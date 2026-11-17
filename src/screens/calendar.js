@@ -1,17 +1,14 @@
+import {calendarDateLabel} from '../core/calendar.js';
 import {emptyState} from '../data/features.js';
-import {escapeHTML} from '../core/dom.js';
-export default {
- id:'calendar',title:'Календарь',icon:'calendar',accent:'blue',
- mount(root,ctx){
-  root.innerHTML='<section class="calendar-layout"><div><span class="eyebrow">ЯНДЕКС TEAM</span><h1 class="feature-title">Ближайшие<br>события.</h1><p class="muted">Твой календарь на семь дней.</p><p class="feature-note muted">Время событий — Москва</p></div><div data-events></div></section>';
-  const body=root.querySelector('[data-events]');
-  return ctx.calendar.subscribe(s=>{
-   if(s.connection!=='connected'){emptyState(body,s,'календарь');return;}
-   const now=Date.now(),events=(s.events||[]).filter(e=>new Date(e.end)>now);
-   if(!events.length){body.innerHTML='<div class="card feature-empty"><h2>Свободное время</h2><p class="muted">В ближайшие семь дней событий нет.</p></div>';return;}
-   const date=d=>new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'short',timeZone:'Europe/Moscow'}).format(new Date(d));
-   const time=d=>new Intl.DateTimeFormat('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Moscow'}).format(new Date(d));
-   body.innerHTML='<div class="event-list">'+events.slice(0,8).map((e,i)=>'<article class="card event '+(!i?'event-next':'')+'"><div class="event-time">'+escapeHTML(e.allDay?'Весь день':time(e.start))+'<span>'+date(e.start)+'</span></div><div><h2>'+escapeHTML(e.title)+'</h2><p class="muted">'+(new Date(e.start)<=now?'Уже идёт':e.allDay?'На весь день':'До '+time(e.end))+'</p></div></article>').join('')+'</div>';
-  });
- }
-};
+import {escapeHTML as esc} from '../core/dom.js';
+const time=d=>new Intl.DateTimeFormat('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Moscow'}).format(new Date(d));
+export default {id:'calendar',title:'Календарь',icon:'calendar',accent:'blue',mount(root,ctx){
+ root.innerHTML='<section class="agenda-dashboard"><header class="screen-heading"><h1>Календарь</h1><span class="muted">Москва · 7 дней</span></header><div data-events></div></section>';
+ return ctx.calendar.subscribe(s=>{
+  const body=root.querySelector('[data-events]');if(s.connection!=='connected'){emptyState(body,s,'календарь');return;}
+  const now=Date.now(),events=(s.events||[]).filter(e=>new Date(e.end)>now);
+  if(!events.length){body.innerHTML='<div class="functional-empty"><h2>Нет ближайших событий</h2><p>На семь дней вперёд.</p></div>';return;}
+  const event=(e,primary)=>{const ongoing=new Date(e.start)<=now;const mins=Math.ceil((new Date(e.start)-now)/60000);return '<article class="card agenda-event '+(primary?'agenda-primary':'')+'"><div class="agenda-when"><strong>'+esc(e.allDay?'Весь день':time(e.start))+'</strong><span>'+esc(calendarDateLabel(e))+'</span></div><div class="agenda-detail"><h2>'+esc(e.title)+'</h2><p>'+(ongoing?'Сейчас':!e.allDay&&mins<60?'Через '+mins+' мин':e.allDay?(primary?'Ближайшее событие':''):'До '+time(e.end))+'</p></div></article>';};
+  body.innerHTML='<div class="agenda-grid">'+event(events[0],true)+'<div class="agenda-upcoming">'+events.slice(1).map(e=>event(e,false)).join('')+'</div></div>';
+ });
+}};

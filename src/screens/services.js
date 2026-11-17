@@ -1,8 +1,11 @@
-import { icon } from '../ui/icons.js';
-export default {
-  id:'services',title:'Сервисы',icon:'services',accent:'blue',
-  mount(root) {
-    root.innerHTML = '<section class="services-layout"><div><span class="eyebrow">ДЕРЖИ ПОД РУКОЙ</span><h1>Все важное.<br><span class="muted">В одном взгляде.</span></h1><p class="muted">Серверы, устройства и фоновые задачи.<br>Здесь будет их состояние.</p><span class="connection-badge"><i></i>Нет подключенных сервисов</span></div><div class="service-placeholder card"><div class="service-illustration" aria-hidden="true"><div>'+icon('services')+'</div><span></span><div>'+icon('link')+'</div></div><h2>Место для твоих<br>подключений</h2><p class="muted">Добавим их, когда выберешь,<br>за чем хочешь наблюдать.</p></div></section>';
-    return () => {};
-  }
-};
+import {agentConnection} from '../core/agent-labels.js';
+import {escapeHTML as esc} from '../core/dom.js';
+const labels={connected:'Работает',not_configured:'Не подключён',loading:'Проверка…',unavailable:'Нет связи',disconnected:'Нет связи',pair_required:'Нужна привязка',stopped:'Плеер закрыт',awaiting_events:'Ждём событие'};
+export default {id:'services',title:'Сервисы',icon:'services',accent:'blue',mount(root,ctx){
+ root.innerHTML='<section class="service-dashboard"><header class="screen-heading"><h1>Подключения</h1><button class="text-button" data-settings>Настроить</button></header><div class="service-grid" data-services></div></section>';
+ const entries=new Map([['computer',{name:'Компьютер'}],['calendar',{name:'Календарь'}],['home',{name:'Умный дом'}],['music',{name:'Музыка'}],['codex',{name:'Codex'}],['claude',{name:'Claude'}]]);
+ const render=()=>{root.querySelector('[data-services]').innerHTML=[...entries].map(([id,s])=>'<button class="card service-item" data-go="'+id+'"><span>'+esc(s.name)+'</span><strong class="'+(s.connection==='connected'?'service-ok':'')+'">'+esc(labels[s.connection]||agentConnection[s.connection]||'Проверка…')+'</strong></button>').join('');};
+ const stops=['computer','calendar','home','music'].map(id=>ctx[id].subscribe(s=>{Object.assign(entries.get(id),s);render();}));
+ stops.push(ctx.agents.subscribe(s=>{for(const id of ['codex','claude'])Object.assign(entries.get(id),s[id]);render();}));render();
+ return ()=>stops.forEach(stop=>stop());
+}};

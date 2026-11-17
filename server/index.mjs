@@ -1,3 +1,4 @@
+import {checkRequest} from './http-guard.mjs';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { resolve, dirname, extname, sep } from 'node:path';
@@ -9,7 +10,7 @@ import { MusicBridge } from './music.mjs';
 import { handleMusic } from './music-http.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.json':'application/json; charset=utf-8'};
-export function createAppServer({music=new MusicBridge(),features=new Features()}={}) {
+export function createAppServer({music=new MusicBridge(),features=new Features(),agentReader=readAgentSnapshot}={}) {
   const server = createServer(async (req, res) => {
     const send = (status, body, type = 'application/json; charset=utf-8') => {
       res.writeHead(status, {'Content-Type':type,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'});
@@ -21,7 +22,7 @@ export function createAppServer({music=new MusicBridge(),features=new Features()
       if(path === '/api/music'){await handleMusic(req,send,music);return;}
       if (!['GET','HEAD'].includes(req.method)) { res.setHeader('Allow','GET, HEAD'); send(405, '{"error":"method_not_allowed"}'); return; }
       if (path === '/api/health') { send(200, JSON.stringify({ok:true,version:'0.1.0'})); return; }
-      if (path === '/api/agents') { send(200, JSON.stringify(await readAgentSnapshot())); return; }
+      if (path === '/api/agents') { if(!checkRequest(req)||!await features.access.authorized(req)){send(403,JSON.stringify({error:'pair_required'}));return;}send(200, JSON.stringify(await agentReader())); return; }
       if (path !== '/' && path !== '/index.html' && !path.startsWith('/src/') && !path.startsWith('/public/')) { send(404, '{"error":"not_found"}'); return; }
       if (path.includes('\\') || path.includes('\0') || path.split('/').includes('..')) { send(400, '{"error":"invalid_path"}'); return; }
       const file = resolve(root, path === '/' ? 'index.html' : path.slice(1));

@@ -4,11 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#101719">
-  <meta name="description" content="Часы, погода и агенты. Твой рабочий стол с другого ракурса.">
+  <meta name="description" content="Часы, календарь, музыка, устройства и статусы агентов.">
   <title>DeskPanel — твой маленький экран</title>
   <link rel="icon" href="/public/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/src/styles.css">
   <link rel="stylesheet" href="/src/ui/features.css">
+  <link rel="stylesheet" href="/src/ui/functional.css">
   <script type="module" src="/src/app.js"></script>
 </head>
 <body>
@@ -18,7 +19,7 @@
       <a class="brand" href="#overview" aria-label="DeskPanel — обзор"><span class="brand-mark">d<span>p</span></span><span>desk<span class="muted">panel</span><span class="brand-dot"></span></span></a>
       <div class="top-date" id="top-date"></div>
       <div class="top-actions">
-        <span class="local-label"><i></i> твое пространство</span>
+
         <button id="rotation-toggle" class="icon-button" aria-label="Приостановить смену экранов" title="Приостановить смену экранов"></button>
         <button id="fullscreen-toggle" class="icon-button fullscreen-button" aria-label="На весь экран" title="На весь экран"></button>
         <button id="settings-open" class="icon-button" aria-label="Настройки" title="Настройки"></button>
@@ -58,7 +59,7 @@
         <button id="city-clear" class="text-button">Убрать город</button>
       </section>
       <div id="connections-settings"></div>
-      <p class="settings-note">Настройки сохраняются в этом браузере. Подключения Codex и Claude пока не настроены.</p>
+      <p class="settings-note">Настройки экранов сохраняются в этом браузере. Подключения — на компьютере.</p>
     </div>
     <div class="settings-footer"><button id="settings-done" class="button button-primary full-width">Готово</button></div>
   </dialog>

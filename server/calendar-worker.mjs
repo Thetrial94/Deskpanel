@@ -7,7 +7,8 @@ try {
   const instances=ical.expandRecurringEvent(event,{from,to,expandOngoing:true,maxIterations:2000});
   for(const instance of instances){
    if(instance.event?.status==='CANCELLED')continue;
-   const date=value=>instance.isFullDay?new Date(new Date(value).toISOString().slice(0,10)+'T00:00:00+03:00'):new Date(value);
+   // node-ical represents DATE values as local midnight, not UTC dates.
+   const date=value=>{const d=new Date(value);if(!instance.isFullDay)return d;const day=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');return new Date(day+'T00:00:00+03:00');};
    const start=date(instance.start),end=date(instance.end||instance.start);
    if(!Number.isFinite(+start)||!Number.isFinite(+end)||+end<=workerData.now||+start>+to)continue;
    events.push({id:String(event.uid).slice(0,200)+':'+start.toISOString(),title:String(instance.summary||event.summary||'Встреча').slice(0,240),start:start.toISOString(),end:end.toISOString(),allDay:!!instance.isFullDay});

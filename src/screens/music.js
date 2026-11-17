@@ -13,7 +13,7 @@ const states={
 export default {
  id:'music',title:'Музыка',icon:'music',accent:'gold',
  mount(root,ctx){
-  root.innerHTML='<section class="music-layout"><div class="music-art" aria-hidden="true"><div class="music-record"><div class="music-label">'+icon('music')+'</div></div><span class="music-art-caption">ТВОЙ РИТМ</span></div><div class="music-player"><span class="eyebrow">НА КОМПЬЮТЕРЕ · ЯНДЕКС МУЗЫКА RS</span><h1 data-music-title>Музыка под рукой.</h1><div class="music-connection"><i data-music-dot></i><span data-music-state></span></div><p class="music-description muted" data-music-description></p><div class="music-controls"><button class="music-skip" data-command="previous" aria-label="Предыдущий трек">'+icon('previous')+'</button><button class="music-toggle" data-command="toggle" aria-label="Воспроизведение / пауза"></button><button class="music-skip" data-command="next" aria-label="Следующий трек">'+icon('next')+'</button></div><div class="music-volume" data-volume-row hidden><label for="music-volume">'+icon('volume')+'<span>Громкость</span></label><input id="music-volume" type="range" min="0" max="100" step="1" aria-label="Громкость Яндекс Музыки" disabled><output for="music-volume" data-volume-output>—</output></div><button class="button button-primary music-launch" data-command="launch" hidden>Запустить на компьютере</button><p class="music-note muted" data-music-note>Точное состояние и громкость появятся после подключения расширенной версии плеера.</p><p class="music-feedback" data-music-feedback role="status" aria-live="polite"></p></div></section>';
+  root.innerHTML='<section class="music-layout"><div class="music-player"><span class="eyebrow">ЯНДЕКС МУЗЫКА</span><h1 data-music-title>Яндекс Музыка</h1><div class="music-connection"><i data-music-dot></i><span data-music-state></span></div><p class="music-description muted" data-music-description></p><div class="music-controls"><button class="music-skip" data-command="previous" aria-label="Предыдущий трек">'+icon('previous')+'</button><button class="music-toggle" data-command="toggle" aria-label="Воспроизведение / пауза"></button><button class="music-skip" data-command="next" aria-label="Следующий трек">'+icon('next')+'</button></div><div class="music-volume" data-volume-row hidden><label for="music-volume">'+icon('volume')+'<span>Громкость</span></label><input id="music-volume" type="range" min="0" max="100" step="1" aria-label="Громкость Яндекс Музыки" disabled><output for="music-volume" data-volume-output>—</output></div><button class="button button-primary music-launch" data-command="launch" hidden>Запустить на компьютере</button><p class="music-note muted" data-music-note>Точное состояние и громкость появятся после подключения расширенной версии плеера.</p><p class="music-feedback" data-music-feedback role="status" aria-live="polite"></p></div></section>';
   const slider=root.querySelector('#music-volume');
   let volumeEditing=false;
   const handler=e=>{const button=e.target.closest('[data-command]');if(button&&!button.disabled)ctx.music.command(button.dataset.command);};
@@ -28,11 +28,10 @@ export default {
     const state=enhanced?({playing:'Сейчас играет',paused:'На паузе',idle:'Выбери музыку',loading:'Загружаем трек…'})[snapshot.playback]||title:title;
     root.querySelector('[data-music-state]').textContent=state;
     const name=root.querySelector('[data-music-title]');
-    name.textContent=enhanced&&snapshot.track?.title?snapshot.track.title:'Музыка под рукой.';
+    name.textContent=enhanced&&snapshot.track?.title?snapshot.track.title:'Яндекс Музыка';
     name.title=name.textContent;
     root.querySelector('[data-music-description]').textContent=enhanced&&snapshot.track?.artist?snapshot.track.artist:description;
     root.querySelector('[data-music-dot]').classList.toggle('connected',connected);
-    root.querySelector('.music-art').classList.toggle('is-playing',playing);
     for(const button of root.querySelectorAll('.music-controls button'))button.disabled=!connected||pending;
     const toggle=root.querySelector('[data-command="toggle"]');
     const label=!enhanced?'Пуск / пауза':snapshot.playback==='loading'?'Загрузка…':playing?'Пауза':'Играть';

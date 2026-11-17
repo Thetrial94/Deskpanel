@@ -6,11 +6,11 @@ export default {
   mount(root,ctx) {
     const stop = ctx.weather.subscribe(state => {
       if (!state.city) {
-        root.innerHTML = '<section class="weather-empty"><div class="weather-orb" aria-hidden="true">'+icon('sun')+'</div><span class="eyebrow">ЧТО ТАМ ЗА ОКНОМ?</span><h1>Погода рядом.</h1><p class="muted">Выбери город, и прогноз будет здесь.</p><button class="button button-primary" data-settings>'+icon('pin')+' Выбрать город</button></section>';
+        root.innerHTML = '<section class="weather-empty"><div class="weather-orb" aria-hidden="true">'+icon('sun')+'</div><span class="eyebrow">ПОГОДА</span><h1>Выбери город</h1><p class="muted">Выбери город, и прогноз будет здесь.</p><button class="button button-primary" data-settings>'+icon('pin')+' Выбрать город</button></section>';
         return;
       }
       if (!state.data) {
-        root.innerHTML = '<section class="weather-empty"><div class="weather-orb" aria-hidden="true">'+icon('weather')+'</div><span class="eyebrow">'+escapeHTML(state.city.name)+'</span><h1>'+(state.loading ? 'Смотрим за окно…' : 'Прогноз недоступен')+'</h1><p class="muted">'+(state.error || 'Получаем текущую погоду и прогноз')+'</p><button class="button button-soft" data-weather-refresh '+(state.loading?'disabled':'')+'>Обновить</button></section>';
+        root.innerHTML = '<section class="weather-empty"><div class="weather-orb" aria-hidden="true">'+icon('weather')+'</div><span class="eyebrow">'+escapeHTML(state.city.name)+'</span><h1>'+(state.loading ? 'Загрузка погоды…' : 'Прогноз недоступен')+'</h1><p class="muted">'+(state.error || 'Получаем текущую погоду и прогноз')+'</p><button class="button button-soft" data-weather-refresh '+(state.loading?'disabled':'')+'>Обновить</button></section>';
         return;
       }
       const current = state.data.current, daily = state.data.daily;

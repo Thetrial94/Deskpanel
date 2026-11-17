@@ -1,27 +1,8 @@
-import { icon } from '../ui/icons.js';
-import { formatTime, formatDate, mountTicker, escapeHTML } from '../core/dom.js';
-export default {
-  id:'overview', title:'Обзор', icon:'overview', accent:'lime',
-  mount(root, ctx) {
-    root.innerHTML = '<div class="overview-layout"><section class="overview-time"><div class="eyebrow"><span class="tiny-star">✳</span> ХОРОШО БЫТЬ ЗДЕСЬ</div><h1 class="greeting"></h1><div class="hero-clock" data-clock></div><div class="date-line" data-date></div><div class="day-track"><span></span></div><div class="day-caption"><span>ТВОЙ ДЕНЬ</span><span data-day-percent></span></div></section><section class="overview-right"><article class="weather-peek card"><div class="card-top"><span>За окном</span>'+icon('sun')+'</div><div data-weather-peek></div></article><div class="agent-peeks"><button class="agent-peek card" data-go="codex"><span class="agent-symbol codex-color">'+icon('codex')+'</span><strong>Codex</strong><span class="agent-status" data-peek="codex">Не подключен</span>'+icon('arrow','peek-arrow')+'</button><button class="agent-peek card" data-go="claude"><span class="agent-symbol claude-color">'+icon('claude')+'</span><strong>Claude</strong><span class="agent-status" data-peek="claude">Не подключен</span>'+icon('arrow','peek-arrow')+'</button></div></section></div>';
-    const stopClock = mountTicker(root, () => {
-      const now = new Date(), hour = now.getHours();
-      root.querySelector('.greeting').textContent = hour < 6 ? 'Тихой ночи.' : hour < 12 ? 'Доброе утро.' : hour < 18 ? 'Хорошего дня.' : 'Добрый вечер.';
-      root.querySelector('[data-clock]').textContent = formatTime(now, ctx.settings().showSeconds); root.querySelector('[data-clock]').classList.toggle('with-seconds', ctx.settings().showSeconds);
-      root.querySelector('[data-date]').textContent = formatDate(now,{weekday:'long'});
-      const progress = (hour*60+now.getMinutes())/1440;
-      root.querySelector('.day-track span').style.width = progress*100+'%';
-      root.querySelector('[data-day-percent]').textContent = Math.round(progress*100)+'%';
-    });
-    const stopWeather = ctx.weather.subscribe(state => {
-      const target = root.querySelector('[data-weather-peek]');
-      if (!state.city) target.innerHTML = '<div class="peek-temperature">—°</div><button class="text-button" data-settings>Выбрать город '+icon('arrow')+'</button>';
-      else if (!state.data) target.innerHTML = '<div class="peek-temperature">—°</div><div class="muted">'+escapeHTML(state.city.name)+' · '+(state.loading ? 'Загрузка' : 'Нет данных')+'</div>';
-      else target.innerHTML = '<div class="peek-temperature">'+Math.round(state.data.current.temperature_2m)+'°</div><div class="muted">'+escapeHTML(state.city.name)+(state.error ? ' · данные устарели' : '')+'</div>';
-    });
-    const stopAgents = ctx.agents.subscribe(data => {
-      for (const id of ['codex','claude']) root.querySelector('[data-peek="'+id+'"]').textContent = data[id].connection === 'not_configured' ? 'Не подключен' : data[id].connection === 'disconnected' ? 'Нет связи' : data[id].sessions.length+' сессий';
-    });
-    return () => { stopClock(); stopWeather(); stopAgents(); };
-  }
-};
+import {formatTime,formatDate,mountTicker,escapeHTML as esc} from '../core/dom.js';
+import {calendarDateLabel} from '../core/calendar.js';
+import {agentStatus,agentConnection} from '../core/agent-labels.js';
+export default {id:'overview',title:'Обзор',icon:'overview',accent:'lime',mount(root,ctx){
+ root.innerHTML='<section class="dashboard"><div class="dashboard-main"><div class="dashboard-time" data-clock></div><div class="dashboard-date" data-date></div><button class="card dashboard-weather" data-go="weather"><strong data-temperature>—°</strong><span data-weather-label>Погода</span></button></div><div class="dashboard-side"><button class="card dashboard-next" data-go="calendar"><span class="widget-label">Ближайшее событие</span><strong data-next-title>Загрузка…</strong><span data-next-time></span></button><div class="dashboard-agents">'+['codex','claude'].map(id=>'<button class="card dashboard-agent" data-go="'+id+'"><span>'+ (id==='codex'?'Codex':'Claude')+'</span><strong data-peek="'+id+'">—</strong></button>').join('')+'</div><button class="card dashboard-music" data-go="music"><span class="widget-label">Музыка</span><strong data-music-peek>Проверка…</strong></button></div></section>';
+ const stops=[mountTicker(root,()=>{root.querySelector('[data-clock]').textContent=formatTime(new Date(),false);root.querySelector('[data-date]').textContent=formatDate(new Date(),{weekday:'long'});}),ctx.weather.subscribe(s=>{root.querySelector('[data-temperature]').textContent=s.data?Math.round(s.data.current.temperature_2m)+'°':'—°';root.querySelector('[data-weather-label]').textContent=(s.city?.name||'Выбери город')+(s.data?' · ощущается '+Math.round(s.data.current.apparent_temperature)+'°':'')+(s.error?' · нет связи':'');}),ctx.calendar.subscribe(s=>{const next=s.events?.find(e=>new Date(e.end)>Date.now());root.querySelector('[data-next-title]').textContent=next?.title||(s.connection==='connected'?'Нет событий':s.connection==='pair_required'?'Подключи телефон':s.connection==='not_configured'?'Календарь не подключён':'Нет связи с календарём');root.querySelector('[data-next-time]').textContent=next?calendarDateLabel(next)+' · '+(next.allDay?'весь день':new Date(next.start).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Moscow'})):'';}),ctx.agents.subscribe(s=>{for(const id of ['codex','claude']){const active=s[id].sessions.find(x=>['approval','waiting','working'].includes(x.status))||s[id].sessions[0];root.querySelector('[data-peek="'+id+'"]').textContent=s[id].connection==='connected'?(active?agentStatus[active.status]||'Неизвестно':'Нет сессий'):agentConnection[s[id].connection]||'Нет связи';}}),ctx.music.subscribe(s=>{root.querySelector('[data-music-peek]').textContent=s.track?.title? (s.playback==='playing'?'▶ ':'Ⅱ ')+s.track.title:s.connection==='connected'?'Выбери трек':s.connection==='stopped'?'Плеер закрыт':'Нет связи';})];
+ return ()=>stops.forEach(stop=>stop());
+}};
