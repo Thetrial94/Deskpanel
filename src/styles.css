@@ -14,3 +14,5 @@ button{border:0}h1,h2,h3,p{margin:0}h1,h2,h3{font-weight:500}h1{letter-spacing:-
 .hero-clock.with-seconds{font-size:clamp(50px,9vw,145px)}
 .giant-clock.with-seconds{font-size:clamp(65px,16vw,230px)}
 @media(max-width:600px) and (orientation:portrait){.hero-clock.with-seconds{font-size:18vw}.giant-clock.with-seconds{font-size:18vw}}
+.fullscreen-button{gap:7px;padding:0 12px;border-color:var(--line);color:var(--accent);white-space:nowrap;font-size:12px}
+@media(max-width:600px){.topbar{gap:10px}.brand>span:last-child{display:none}.top-actions .fullscreen-button{min-height:40px}}

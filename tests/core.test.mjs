@@ -50,3 +50,21 @@ test('invalid saved focus settings cannot introduce NaN or an arbitrary duration
  const timer=new FocusTimer({getItem:()=>JSON.stringify({duration:-20,deadline:'bad',remaining:-50})});
  assert.equal(timer.duration,25);assert.equal(timer.deadline,null);assert.equal(timer.seconds(),0);
 });
+
+test('Moscow defaults migrate old empty settings without losing preferences',()=>{
+ const storage=memory();
+ storage.setItem('deskpanel.settings.v1',JSON.stringify({version:1,city:null,autoRotate:false,interval:60,enabledScreens:['clock','weather']}));
+ const value=loadSettings(storage);
+ assert.equal(value.version,2);assert.equal(value.city.name,'Москва');
+ assert.equal(value.city.latitude,55.7558);assert.equal(value.city.longitude,37.6173);
+ assert.equal(value.autoRotate,false);assert.equal(value.interval,60);
+ assert.deepEqual(value.enabledScreens,['clock','weather']);
+ assert.equal(loadSettings(memory()).city.name,'Москва');
+});
+test('an existing city and an explicit removal survive migration and reload',()=>{
+ const city={name:'Казань',latitude:55.79,longitude:49.12,country:'Россия'};
+ assert.deepEqual(normalizeSettings({version:1,city}).city,city);
+ const storage=memory(),value=normalizeSettings();
+ value.city=null;saveSettings(storage,value);
+ assert.equal(loadSettings(storage).city,null);
+});

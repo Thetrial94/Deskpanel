@@ -123,14 +123,22 @@ document.addEventListener('keydown',e=>{
   if(e.key==='ArrowLeft'){e.preventDefault();step(-1);}
   if(e.code==='Space'){e.preventDefault();toggleRotation();}
 });
+function updateFullscreenButton() {
+  const button=document.querySelector('#fullscreen-toggle'), active=!!document.fullscreenElement;
+  const label=active?'Выйти из полного экрана':'На весь экран';
+  button.innerHTML=icon('fullscreen')+(active?'':'<span>На весь экран</span>');
+  button.setAttribute('aria-label',label);button.title=label;button.setAttribute('aria-pressed',String(active));
+}
 document.querySelector('#fullscreen-toggle').addEventListener('click',async()=>{
-  try { if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else toast('Используй полноэкранный режим киоск-браузера.'); }
-  catch { toast('Браузер не разрешил полноэкранный режим.'); }
+  interact();
+  try {
+    if(document.fullscreenElement)await document.exitFullscreen();
+    else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen({navigationUI:'hide'});
+    else toast('Этот браузер не поддерживает полный экран. Открой панель в другом браузере или киоск-режиме.');
+  } catch { toast('Браузер не разрешил полный экран. Попробуй открыть панель в другом браузере.'); }
+  updateFullscreenButton();
 });
-document.addEventListener('fullscreenchange',()=>{
-  const label=document.fullscreenElement?'Выйти из полного экрана':'На весь экран';
-  document.querySelector('#fullscreen-toggle').setAttribute('aria-label',label);
-});
+document.addEventListener('fullscreenchange',updateFullscreenButton);
 async function requestWake() {
   if(!navigator.wakeLock){toast('В этом браузере используй настройку «Не выключать экран» или киоск-режим.');return;}
   if(!window.isSecureContext){toast('Для этой функции браузеру нужен HTTPS. В локальной сети используй киоск-режим.');return;}
@@ -169,7 +177,7 @@ document.querySelector('#city-form').addEventListener('submit',async e=>{
 document.querySelector('#city-clear').addEventListener('click',()=>{
   settings.city=null;persist();weather.setCity(null);renderCity();document.querySelector('#city-results').innerHTML='';
 });
-document.querySelector('#fullscreen-toggle').innerHTML=icon('fullscreen');
+updateFullscreenButton();
 document.querySelector('#settings-open').innerHTML=icon('settings');
 document.querySelector('#settings-close').innerHTML=icon('close');
 document.querySelector('#swipe-hint').innerHTML=icon('left')+icon('right');
