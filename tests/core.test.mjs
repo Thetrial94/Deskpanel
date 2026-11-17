@@ -7,7 +7,7 @@ const memory=()=>{const map=new Map();return {getItem:k=>map.get(k)||null,setIte
 test('damaged settings recover and keep one enabled screen',()=>{
  assert.deepEqual(loadSettings({getItem:()=>'{bad'}).enabledScreens,SCREEN_IDS);
  const v=normalizeSettings({screenOrder:['claude','bogus','claude'],enabledScreens:[],interval:-1,city:{name:'x',latitude:NaN,longitude:0}});
- assert.equal(v.screenOrder[0],'claude');assert.equal(v.screenOrder.length,8);
+ assert.equal(v.screenOrder[0],'claude');assert.equal(v.screenOrder.length,13);
  assert.deepEqual(v.enabledScreens,['overview']);assert.equal(v.interval,5);assert.equal(v.city,null);
 });
 test('screen order, disabled screens and preferences survive reload',()=>{
@@ -55,10 +55,10 @@ test('Moscow defaults migrate old empty settings without losing preferences',()=
  const storage=memory();
  storage.setItem('deskpanel.settings.v1',JSON.stringify({version:1,city:null,autoRotate:false,interval:60,enabledScreens:['clock','weather']}));
  const value=loadSettings(storage);
- assert.equal(value.version,3);assert.equal(value.city.name,'Москва');
+ assert.equal(value.version,4);assert.equal(value.city.name,'Москва');
  assert.equal(value.city.latitude,55.7558);assert.equal(value.city.longitude,37.6173);
  assert.equal(value.autoRotate,false);assert.equal(value.interval,60);
- assert.deepEqual(value.enabledScreens,['clock','weather','music']);
+ assert.deepEqual(value.enabledScreens,['clock','weather','music','computer','remote','calendar','home','breaks']);
  assert.equal(loadSettings(memory()).city.name,'Москва');
 });
 test('an existing city and an explicit removal survive migration and reload',()=>{
@@ -70,7 +70,7 @@ test('an existing city and an explicit removal survive migration and reload',()=
 });
 test('music screen appears once in old settings and can stay hidden after saving',()=>{
  const old=normalizeSettings({version:2,city:null,enabledScreens:['clock'],screenOrder:['clock']});
- assert.equal(old.city,null);assert.deepEqual(old.enabledScreens,['clock','music']);
+ assert.equal(old.city,null);assert.deepEqual(old.enabledScreens,['clock','music','computer','remote','calendar','home','breaks']);
  const storage=memory();old.enabledScreens=['clock'];saveSettings(storage,old);
  assert.deepEqual(loadSettings(storage).enabledScreens,['clock']);
  assert.equal(loadSettings(storage).city,null);

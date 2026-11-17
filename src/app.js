@@ -6,23 +6,28 @@ import { icon } from './ui/icons.js';
 import { screens, screenById } from './screens/registry.js';
 import { WeatherSource, searchCities } from './data/weather.js';
 import { AgentSource } from './data/agents.js';
+import { BreakTimer } from './core/breaks.js';
+import { FeatureSource } from './data/features.js';
+import { setupConnections } from './ui/connections.js';
 import { MusicSource } from './data/music.js';
 
 let storage;
 try { storage = window.localStorage; } catch { storage = {getItem:()=>null,setItem:()=>{throw new Error('unavailable');}}; }
 let settings = loadSettings(storage);
 const focus = new FocusTimer(storage), weather = new WeatherSource(), agents = new AgentSource(), music = new MusicSource();
+const breaks = new BreakTimer(storage), computer = new FeatureSource('/api/computer',3000), remote = new FeatureSource('/api/remote'), calendar = new FeatureSource('/api/calendar',60000), home = new FeatureSource('/api/home',10000);
 const stage = document.querySelector('#stage'), nav = document.querySelector('#screen-nav'), dialog = document.querySelector('#settings-dialog');
 const rotation = new RotationClock(settings.interval*1000,performance.now());
 let activeId = settings.enabledScreens.includes(location.hash.slice(1)) ? location.hash.slice(1) : settings.screenOrder.find(id=>settings.enabledScreens.includes(id));
 let cleanup = () => {}, transitionTimer, toastTimer, lastStatus = '', pointer = null, wakeLock = null, wakeWanted = false, cityRequest = null;
-const context = {settings:()=>settings,focus,weather,agents,music};
+const context = {settings:()=>settings,focus,weather,agents,music,breaks,computer,remote,calendar,home};
 const enabled = () => settings.screenOrder.filter(id=>settings.enabledScreens.includes(id));
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 function toast(message) { clearTimeout(toastTimer); const node = document.querySelector('#toast'); node.textContent = message; node.classList.add('visible'); toastTimer = setTimeout(()=>node.classList.remove('visible'),3600); }
 function renderNav() {
   const ids = enabled();
   nav.innerHTML = ids.map(id => '<button class="nav-item '+(id===activeId?'active':'')+'" data-screen="'+id+'" aria-label="'+screenById.get(id).title+'" '+(id===activeId?'aria-current="page"':'')+'>'+icon(screenById.get(id).icon)+'<span>'+screenById.get(id).title+'</span><i></i></button>').join('');
+  nav.querySelector('.active')?.scrollIntoView({block:'nearest',inline:'nearest'});
   document.querySelector('#screen-counter').textContent = String(ids.indexOf(activeId)+1).padStart(2,'0')+' / '+String(ids.length).padStart(2,'0');
 }
 function mountActive(direction = 0) {
@@ -77,12 +82,13 @@ function openSettings() {
   for (const [selector,key] of [['auto','autoRotate'],['seconds','showSeconds'],['night','dimAtNight']]) document.querySelector('#setting-'+selector).checked = settings[key];
   document.querySelector('#setting-interval').value = String(settings.interval);
   document.querySelector('#setting-resume').value = String(settings.resumeAfter);
-  renderScreenSettings(); renderCity(); dialog.showModal();
+  renderScreenSettings(); renderCity(); dialog.showModal(); connections.open();
 }
+const connections = setupConnections(document.querySelector('#connections-settings'),{settings:()=>settings,saveDevices:devices=>{settings.devices=devices;persist();if(activeId==='computer')mountActive();},changed:()=>{calendar.refresh();home.refresh();remote.refresh();}});
 function closeSettings() { dialog.close(); interact(); }
 document.querySelector('#settings-open').addEventListener('click',openSettings);
 for (const id of ['settings-close','settings-done']) document.querySelector('#'+id).addEventListener('click',closeSettings);
-dialog.addEventListener('close',interact);
+dialog.addEventListener('close',()=>{connections.close();interact();});
 dialog.addEventListener('click',e=>{ if (e.target===dialog && e.clientX < dialog.getBoundingClientRect().left) closeSettings(); });
 for (const [selector,key] of [['auto','autoRotate'],['seconds','showSeconds'],['night','dimAtNight']]) document.querySelector('#setting-'+selector).addEventListener('change',e=>{settings[key]=e.target.checked;persist();});
 document.querySelector('#setting-interval').addEventListener('change',e=>{settings.interval=Number(e.target.value);persist();});
@@ -186,9 +192,16 @@ function updateDate(){document.querySelector('#top-date').textContent=formatDate
 updateDate();setInterval(updateDate,30000);
 mountActive();updateRotationButton();weather.setCity(settings.city);agents.refresh();
 setInterval(()=>agents.refresh(),15000);setInterval(()=>weather.refresh(),60000);
-setInterval(()=>{if(focus.tick())toast('Время фокуса закончилось. Можно отдохнуть.');},250);
+const breakReminder=document.querySelector('#break-reminder');
+breakReminder.addEventListener('click',()=>{if(!enabled().includes('breaks')){settings.enabledScreens.push('breaks');persist();}go('breaks');});
+setInterval(()=>{
+ if(focus.tick())toast('Время фокуса закончилось. Можно отдохнуть.');
+ breaks.tick();
+ breakReminder.hidden=!breaks.due||activeId==='breaks';
+ breakReminder.textContent=breaks.phase==='work'?'Пора отдохнуть →':'Перерыв завершён →';
+},250);
 function frame(now){
-  const ids=enabled(),blocked=!settings.autoRotate||dialog.open||document.hidden||ids.length<2;
+  const ids=enabled(),blocked=!settings.autoRotate||dialog.open||!!stage.querySelector('.action-confirm')||document.hidden||ids.length<2;
   if(rotation.tick(now,blocked))step(1,false);
   const holding=now<rotation.resumeAt;
   const label=ids.length<2?'Один экран':!settings.autoRotate?'Автосмена на паузе':holding?'После касания · '+Math.ceil((rotation.resumeAt-now)/1000)+' сек':'Автосмена · '+settings.interval+' сек';
@@ -197,3 +210,5 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+
+window.addEventListener('resize',()=>nav.querySelector('.active')?.scrollIntoView({block:'nearest',inline:'nearest'}));

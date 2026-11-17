@@ -10,5 +10,10 @@
     "test": "node --test",
     "check": "node scripts/check.mjs"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "node-ical": "^0.27.6"
+  }
 }
