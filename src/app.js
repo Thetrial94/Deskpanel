@@ -1,3 +1,4 @@
+import {setupScreenReorder} from './ui/reorder.js';
 import {OVERVIEW_MODULES,MAX_OVERVIEW_MODULES} from './core/overview.js';
 import {ComputerSources} from './data/computers.js';
 import { ServerConnection } from './core/connection.js';
@@ -84,7 +85,8 @@ function updateDim() { const hour = new Date().getHours(),quiet=isEvening(settin
 function renderScreenSettings() {
   document.querySelector('#screen-settings').innerHTML = settings.screenOrder.map((id,index) => {
     const on = settings.enabledScreens.includes(id), last = on && settings.enabledScreens.length===1;
-    return '<div class="screen-setting"><label><input type="checkbox" data-enable="'+id+'" '+(on?'checked':'')+' '+(last?'disabled':'')+'>'+icon(screenById.get(id).icon)+'<span>'+screenById.get(id).title+'</span></label><div><button class="icon-button small-button" data-move="'+id+'" data-delta="-1" aria-label="'+screenById.get(id).title+': выше" '+(index===0?'disabled':'')+'>'+icon('up')+'</button><button class="icon-button small-button" data-move="'+id+'" data-delta="1" aria-label="'+screenById.get(id).title+': ниже" '+(index===settings.screenOrder.length-1?'disabled':'')+'>'+icon('down')+'</button></div></div>';
+    const position=enabled().indexOf(id)+1;
+    return '<div class="screen-setting '+(!on?'screen-disabled':'')+'" data-screen-order-id="'+id+'"><button type="button" class="screen-drag-handle" data-drag-screen="'+id+'" aria-label="'+screenById.get(id).title+': перетащить или переместить стрелками клавиатуры" aria-pressed="false">⠿</button><span class="screen-order-number">'+(on?String(position).padStart(2,'0'):'—')+'</span><label><input type="checkbox" data-enable="'+id+'" '+(on?'checked':'')+' '+(last?'disabled':'')+'>'+icon(screenById.get(id).icon)+'<span>'+screenById.get(id).title+'</span></label><div class="screen-order-actions"><button class="icon-button small-button" data-move="'+id+'" data-delta="-1" aria-label="'+screenById.get(id).title+': выше" '+(index===0?'disabled':'')+'>'+icon('up')+'</button><button class="icon-button small-button" data-move="'+id+'" data-delta="1" aria-label="'+screenById.get(id).title+': ниже" '+(index===settings.screenOrder.length-1?'disabled':'')+'>'+icon('down')+'</button></div></div>';
   }).join('');
 }
 function renderOverviewSettings(){
@@ -134,13 +136,21 @@ document.querySelector('#screen-settings').addEventListener('change',e=>{
   const id=e.target.dataset.enable; if(!id) return;
   settings.enabledScreens=e.target.checked?[...settings.enabledScreens,id]:settings.enabledScreens.filter(x=>x!==id);persist();renderScreenSettings();
 });
+function moveScreen(id,to){
+ const from=settings.screenOrder.indexOf(id);if(from<0||to<0||to>=settings.screenOrder.length||from===to)return;
+ settings.screenOrder.splice(from,1);settings.screenOrder.splice(to,0,id);persist();renderScreenSettings();
+ document.querySelector('#screen-order-status').textContent=screenById.get(id).title+': позиция '+(to+1)+'. Порядок сохранён.';
+ document.querySelector('[data-drag-screen="'+id+'"]').focus({preventScroll:true});
+}
+setupScreenReorder(document.querySelector('#screen-settings'),moveScreen);
 document.querySelector('#screen-settings').addEventListener('click',e=>{
-  const button=e.target.closest('[data-move]');if(!button) return;
-  const i=settings.screenOrder.indexOf(button.dataset.move),j=i+Number(button.dataset.delta);
-  if(j<0||j>=settings.screenOrder.length)return;
-  [settings.screenOrder[i],settings.screenOrder[j]]=[settings.screenOrder[j],settings.screenOrder[i]];
-  persist();renderScreenSettings();
+ const button=e.target.closest('[data-move]');if(!button||button.disabled)return;
+ moveScreen(button.dataset.move,settings.screenOrder.indexOf(button.dataset.move)+Number(button.dataset.delta));
 });
+document.querySelector('.settings-shortcuts').addEventListener('click',e=>{
+ const button=e.target.closest('[data-settings-jump]');if(button)document.getElementById(button.dataset.settingsJump)?.scrollIntoView({block:'start',behavior:'smooth'});
+});
+
 document.querySelector('#rotation-toggle').addEventListener('click',toggleRotation);
 nav.addEventListener('click',e=>{const button=e.target.closest('[data-screen]');if(button)go(button.dataset.screen);});
 document.querySelector('.brand').addEventListener('click',e=>{e.preventDefault();go('overview');});

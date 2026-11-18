@@ -9,7 +9,7 @@ export default {id:'overview',title:'Обзор',icon:'overview',accent:'lime',m
  const catalog=new Map(OVERVIEW_MODULES.map(m=>[m.id,m]));
  root.innerHTML='<section class="overview-board">'+ids.map(id=>{
   if(id==='clock')return '<div class="overview-clock overview-module module-clock" data-overview-module-card="clock"><div class="context-time" data-clock></div><button class="context-weather text-button" data-go="weather"></button><div class="context-date" data-date></div></div>';
-  if(id==='music')return '<article class="card overview-module module-music" data-overview-module-card="music" data-music><button class="overview-music-link" data-open-module="music"><span class="module-label">Музыка</span><strong class="module-value"></strong><span class="module-detail"></span></button><div class="overview-music-controls"><button class="icon-button" data-music-toggle aria-label="Воспроизведение / пауза"></button><button class="icon-button" data-next aria-label="Следующий трек">'+icon('next')+'</button></div></article>';
+  if(id==='music')return '<article class="card overview-module module-music" data-overview-module-card="music" data-music><button class="overview-music-link" data-open-module="music"><span class="module-label">Музыка</span><strong class="module-value"></strong><span class="module-detail"></span></button><div class="overview-music-controls"><button class="icon-button" data-previous aria-label="Предыдущий трек">'+icon('previous')+'</button><button class="icon-button" data-music-toggle aria-label="Воспроизведение / пауза"></button><button class="icon-button" data-next aria-label="Следующий трек">'+icon('next')+'</button></div></article>';
   return '<button class="card overview-module module-'+id+'" data-overview-module-card="'+id+'" data-open-module="'+id+'" '+(['codex','claude'].includes(id)?'data-agent="'+id+'"':'')+' '+(id==='primary'?'data-primary':'')+'><span class="module-label">'+catalog.get(id).title+'<span data-count></span></span><strong class="module-value" '+(['codex','claude'].includes(id)?'data-agent-title':'')+'></strong><span class="module-detail"></span></button>';
  }).join('')+'<div class="overview-empty" data-overview-empty hidden><p>Вечерний режим скрывает выбранные рабочие блоки.</p><button class="text-button" data-settings data-overview-settings>Настроить обзор</button></div></section>';
  for(const id of ids)nodes.set(id,root.querySelector('[data-overview-module-card="'+id+'"]'));
@@ -25,7 +25,7 @@ export default {id:'overview',title:'Обзор',icon:'overview',accent:'lime',m
    node.querySelector('.module-value').textContent=widget.title;node.querySelector('.module-value').title=widget.title;
    node.querySelector('.module-detail').textContent=widget.detail||'';
    if(id!=='music'){node.querySelector('.module-label').firstChild.textContent=widget.label||catalog.get(id).title;node.querySelector('[data-count]').textContent=widget.count?String(widget.count):'';}
-   else{const playing=ctx.music.snapshot.playback==='playing',toggle=node.querySelector('[data-music-toggle]');toggle.innerHTML=icon(playing?'pause':'play');toggle.setAttribute('aria-label',playing?'Пауза':'Играть');for(const button of node.querySelectorAll('.overview-music-controls button'))button.disabled=ctx.music.pending||ctx.music.snapshot.connection!=='connected';}
+   else{const snapshot=ctx.music.snapshot;node.querySelector('.module-label').textContent=snapshot.connection==='connected'?widget.detail:'Музыка';node.querySelector('.module-detail').textContent=snapshot.connection==='connected'?(snapshot.track?.artist||''):widget.detail;const playing=snapshot.playback==='playing',toggle=node.querySelector('[data-music-toggle]');toggle.innerHTML=icon(playing?'pause':'play');toggle.setAttribute('aria-label',playing?'Пауза':'Играть');toggle.setAttribute('aria-pressed',String(playing));for(const button of node.querySelectorAll('.overview-music-controls button'))button.disabled=ctx.music.pending||ctx.music.snapshot.connection!=='connected';}
   }
   const shown=ids.filter(id=>!nodes.get(id).hidden),board=root.querySelector('section');board.dataset.count=visible;board.classList.toggle('with-clock',ids.includes('clock'));board.classList.toggle('span-clock',ids.includes('clock')&&visible>=3&&visible%2===1);
   for(const id of ids)nodes.get(id).classList.toggle('module-wide',!ids.includes('clock')&&visible%2===1&&id===shown.at(-1));
@@ -43,7 +43,7 @@ export default {id:'overview',title:'Обзор',icon:'overview',accent:'lime',m
  const stops=[...sources].map(source=>source.subscribe(render));stops.push(mountTicker(root,render));
  const click=e=>{
   const open=e.target.closest('[data-open-module]');if(open){const widget=widgets.get(open.dataset.openModule);if(widget){if(widget.eventId)ctx.meetingId=widget.eventId;if(widget.mode)ctx.timeMode=widget.mode;ctx.navigate(widget.target);}}
-  if(e.target.closest('[data-music-toggle]'))ctx.music.command('toggle');if(e.target.closest('[data-next]'))ctx.music.command('next');
+  if(e.target.closest('[data-previous]'))ctx.music.command('previous');if(e.target.closest('[data-music-toggle]'))ctx.music.command('toggle');if(e.target.closest('[data-next]'))ctx.music.command('next');
  };
  root.addEventListener('click',click);return ()=>{stops.forEach(stop=>stop());root.removeEventListener('click',click);};
 }};

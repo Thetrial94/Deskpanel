@@ -1,0 +1,303 @@
+/* Final layout rules for the desk display. Content stays readable in both orientations. */
+.music-dashboard{width:100%;max-width:900px;margin-inline:auto}
+.music-dashboard .music-player{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;min-width:0;text-align:center}
+.music-header,.music-now{display:grid;justify-items:center;gap:6px;width:100%;min-width:0}
+.music-dashboard .music-header .eyebrow{font-size:12px}
+.music-dashboard .music-targets{max-width:100%;justify-content:safe center;margin:0;padding:0 0 2px}
+.music-dashboard .computer-choice{text-align:center;min-height:44px}
+.music-dashboard .music-connection{justify-content:center;font-size:15px}
+.music-dashboard .music-now h1{width:100%;max-width:820px;margin:0;font-size:clamp(30px,4vw,48px);line-height:1.15;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
+.music-dashboard .music-description{width:100%;max-width:min(680px,100%);min-width:0;overflow-wrap:anywhere;min-height:0!important;margin:0!important;font-size:20px!important;line-height:1.35;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.music-dashboard .music-controls{grid-area:auto;justify-content:center;gap:18px;margin:0}
+.music-dashboard .music-toggle{min-width:156px;min-height:64px;font-size:18px;gap:10px}
+.music-dashboard .music-skip{width:56px;height:56px;min-height:56px}
+.music-dashboard .music-volume{grid-area:auto;display:flex;align-items:center;flex-wrap:nowrap;gap:12px;width:min(480px,100%);max-width:100%;margin:0}
+.music-dashboard .music-volume label{display:flex;align-items:center;gap:6px;width:auto;flex-shrink:0;font-size:13px}
+.music-dashboard .music-volume label span{display:none}
+.music-dashboard .music-volume input{flex:1;min-width:0;height:44px}
+.music-dashboard .music-volume output{font-size:20px;min-width:52px;text-align:right}
+.music-dashboard .music-launch{grid-area:auto;margin:0;min-height:36px;font-size:13px;max-width:100%}
+.music-dashboard .music-note{max-width:520px;margin:0;font-size:13px}
+.music-dashboard .music-feedback{grid-area:auto;margin:0;min-height:0;line-height:1.3;font-size:13px}
+.music-dashboard [hidden]{display:none!important}
+.music-dashboard:not([data-connection="connected"]) .music-controls{display:none}
+
+/* The overview player is a centered mini player, with the same control order. */
+.overview-board .module-music{flex-direction:column;justify-content:center;gap:6px;padding:4px 12px;text-align:center}
+.module-music .overview-music-link{display:flex;flex-direction:column;align-items:center;flex:none;width:100%;gap:2px;text-align:center}
+.module-music .module-label{justify-content:center;font-size:12px;line-height:1.2}
+.module-music .module-value{font-size:19px;line-height:1.2;width:100%;min-width:0}
+.module-music .module-detail{font-size:12px;line-height:1.2;width:100%;white-space:nowrap;text-overflow:ellipsis;display:block;overflow:hidden}
+.module-music .module-detail:empty{display:none}
+.overview-music-controls{justify-content:center;gap:10px}
+.overview-music-controls .icon-button{min-width:44px;min-height:44px;border-radius:12px}
+.overview-music-controls [data-music-toggle]{background:var(--accent);color:var(--bg);min-width:58px}
+.overview-music-controls button:disabled{opacity:.4}
+.overview-board .context-weather{min-height:36px}
+.weather-attribution .text-button{min-height:36px}
+
+/* Long list screens keep all items available; text cannot stretch a column. */
+.screen-heading{min-width:0}
+.screen-heading h1{min-width:0}
+.screen-heading>.muted{max-width:55%;text-align:right;overflow-wrap:anywhere}
+.agent-session h3{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.group-recent h3,.group-other h3{-webkit-line-clamp:2}
+.feature-empty,.functional-empty{max-width:700px}
+.feature-empty h2,.functional-empty h2{overflow-wrap:anywhere}
+.feature-empty p,.functional-empty p{line-height:1.5}
+.home-device .button{max-width:100%}
+
+@media(orientation:landscape) and (max-height:520px){
+ .music-dashboard .music-player{gap:8px}
+ .music-dashboard .music-header>.eyebrow{display:none}
+ .music-dashboard .music-now h1{font-size:34px}
+ .music-dashboard .music-description{font-size:18px!important}
+ .music-dashboard .music-toggle{min-height:56px;min-width:144px}
+ .music-dashboard .music-skip{height:48px;width:48px;min-height:48px}
+ .music-dashboard .music-volume input{height:36px}
+ .music-dashboard .music-targets .computer-choice{min-height:40px}
+ .service-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .service-item{text-align:center;align-items:center;padding:14px;gap:6px}
+ .service-item strong{font-size:21px}
+ .computer-metrics .metric{text-align:center}
+ .computer-metrics .metric strong{justify-content:center}
+}
+@media(orientation:landscape) and (max-height:400px){
+ .screen-heading{margin-bottom:8px;min-height:32px}
+ .screen-heading h1{font-size:22px}
+ .screen-heading .text-button{min-height:36px;font-size:12px}
+ .computer-picker{margin:6px 0 8px;gap:8px}
+ .computer-choice{min-height:36px;padding:4px 12px;font-size:13px;gap:2px}
+ .music-dashboard .music-player{gap:3px}
+ .music-dashboard .music-targets .computer-choice{min-height:36px}
+ .music-dashboard .music-now{gap:2px}
+ .music-dashboard .music-now h1{font-size:25px;-webkit-line-clamp:1}
+ .music-dashboard .music-connection{font-size:12px;line-height:1.2}
+ .music-dashboard .music-description{font-size:14px!important;-webkit-line-clamp:1}
+ .music-dashboard .music-controls{gap:14px}
+ .music-dashboard .music-toggle{min-height:44px;min-width:132px;font-size:16px}
+ .music-dashboard .music-skip{height:44px;width:44px;min-height:44px}
+ .music-dashboard .music-volume input{height:32px}
+ .music-dashboard .music-volume output{font-size:17px}
+ .music-dashboard .music-launch{min-height:32px;font-size:12px}
+ .module-music .module-detail{display:none}
+ .module-music .module-label{font-size:10px}
+ .module-music .module-value{font-size:15px}
+ .overview-board .module-music{padding:4px 10px;gap:2px}
+ .overview-music-controls .icon-button{min-width:36px;min-height:36px}
+ .overview-music-controls [data-music-toggle]{min-width:48px}
+ .overview-music-controls .icon{width:17px;height:17px}
+ .weather-layout{gap:20px}
+ .weather-current h1{font-size:82px}
+ .weather-large-icon{width:60px;height:60px}
+ .weather-main h2{font-size:22px}
+ .weather-main>p:empty{display:none}
+ .weather-metrics .card{padding:10px 14px;gap:4px}
+ .weather-metrics strong{font-size:24px}
+ .weather-details{gap:6px}
+ .forecast{padding:10px 14px}
+ .forecast-row{margin-top:8px}
+ .forecast-day{gap:5px;font-size:12px}
+ .forecast-day .icon{width:22px;height:22px}
+ .weather-attribution{gap:5px;flex-wrap:wrap;font-size:10px}
+ .weather-attribution .text-button{font-size:11px;min-height:36px}
+ .time-heading{gap:16px;margin-bottom:8px}
+ .time-heading h1{font-size:22px}
+ .time-tab{min-height:44px;padding:4px 8px;font-size:14px}
+ .time-tab small{font-size:11px;min-height:12px;line-height:12px}
+ .time-mode-body h2{font-size:20px;min-height:24px;margin-bottom:8px}
+ .time-mode-body .focus-face,.time-mode-body .quick-timer-face{grid-template-rows:14px 64px 16px 44px;gap:4px}
+ .time-mode-body .timer-digits,.time-mode-body .quick-timer-face>strong{font-size:60px}
+ .time-mode-body [data-timer-caption],.time-mode-body [data-break-count]{font-size:12px;line-height:16px}
+ .time-mode-body .timer-controls>.button,.time-mode-body .reset-button{min-height:44px;height:44px;padding:6px 12px;font-size:14px}
+ .time-mode-body .quick-timer form{margin-top:8px}
+ .time-mode-body .quick-timer form label{font-size:12px}
+ .time-mode-body .duration-button{font-size:14px;min-height:40px;padding:8px 12px}
+ .time-mode-body .break-settings{margin-top:8px;gap:14px}
+ .time-mode-body .break-settings label{font-size:13px;gap:4px}
+ .time-mode-body .break-settings select{min-height:40px;font-size:14px;padding:6px 10px}
+ .service-grid{gap:8px}
+ .service-item{padding:10px;gap:4px}
+ .service-item span{font-size:13px}
+ .service-item strong{font-size:19px}
+ .computer-metrics{gap:10px}
+ .computer-metrics .metric{padding:10px 14px}
+ .computer-metrics .metric>span,.computer-metrics .metric p{font-size:13px}
+ .computer-metrics .metric strong{font-size:48px;margin:6px 0}
+ .computer-metrics .metric strong small{font-size:20px}
+ .remote-card{padding:10px 16px}
+ .remote-card>label{font-size:15px}
+ .volume-line{margin:0 0 6px;gap:14px}
+ .volume-line input{height:40px}
+ .volume-line output{font-size:28px}
+ .remote-grid{gap:8px}
+ .remote-grid .button{min-height:44px;padding:8px;font-size:13px}
+ .remote-card .settings-note{display:none}
+ .remote-card .feature-feedback{margin:4px 0 0;font-size:12px}
+ .agent-summary{font-size:14px;margin:0 0 10px}
+ .agent-group{margin-bottom:12px}
+ .agent-group-title{font-size:13px;margin-bottom:6px}
+ .agent-group .agent-session{padding:12px 16px}
+ .agent-group .session-status{font-size:18px}
+ .agent-session h3{font-size:22px;margin-top:6px}
+ .group-recent .agent-session,.group-other .agent-session{padding:8px 12px;gap:8px}
+ .group-recent h3,.group-other h3{font-size:17px;margin:0}
+ .group-recent .session-status,.group-other .session-status{font-size:13px}
+ .session-age{font-size:12px}
+ .agenda-primary{padding:14px 18px}
+ .agenda-primary .agenda-when strong{font-size:30px}
+ .agenda-primary .agenda-when span{font-size:16px}
+ .agenda-primary h2{font-size:23px;margin-top:10px}
+ .agenda-upcoming{gap:8px}
+ .agenda-upcoming .agenda-event{grid-template-columns:86px 1fr;gap:10px;padding:10px 14px}
+ .agenda-upcoming .agenda-when strong{font-size:20px}
+ .agenda-upcoming h2{font-size:17px}
+ .agenda-detail p{font-size:12px;margin-top:4px}
+ .agenda-detail .text-button{font-size:12px;min-height:36px}
+ .meeting-screen h1{font-size:25px;max-width:750px;margin-inline:auto}
+ .meeting-countdown{font-size:58px}
+ .meeting-actions{margin-top:10px}
+ .meeting-actions .button{min-height:44px}
+}
+@media(max-width:600px) and (orientation:portrait){
+ .music-dashboard .music-player{gap:16px}
+ .music-dashboard .music-now{gap:8px}
+ .music-dashboard .music-now h1{font-size:34px}
+ .music-dashboard .music-description{font-size:19px!important}
+ .music-dashboard .music-volume{gap:10px}
+ .music-dashboard .music-toggle{min-width:144px}
+ .music-dashboard .music-controls{gap:14px}
+ .music-dashboard .music-header .computer-choice{font-size:14px;min-width:0}
+ .group-current .session-status-line{gap:6px 12px}
+ .group-current .session-status{font-size:22px}
+ .agent-session h3{font-size:25px}
+ .remote-grid .button{font-size:14px}
+ .service-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .service-item span{font-size:14px}
+ .service-item strong{font-size:20px}
+}
+@media(max-width:600px) and (orientation:portrait) and (max-height:700px){
+ .stage{padding:10px 0}
+ .screen-heading{margin-bottom:10px}
+ .screen-heading h1{font-size:23px}
+ .music-dashboard .music-player{gap:8px}
+ .music-dashboard .music-now h1{font-size:28px}
+ .music-dashboard .music-description{font-size:16px!important}
+ .music-dashboard .music-toggle{min-height:52px}
+ .music-dashboard .music-skip{min-height:48px;width:48px;height:48px}
+ .music-dashboard .music-controls{gap:12px}
+ .music-dashboard .music-volume input{height:36px}
+ .weather-layout{gap:14px}
+ .weather-main .weather-current{margin:8px 0}
+ .weather-current h1{font-size:76px}
+ .weather-large-icon{width:60px;height:60px}
+ .weather-main h2{font-size:23px}
+ .weather-main>p:empty{display:none}
+ .weather-metrics .card{padding:12px 16px;gap:6px}
+ .weather-metrics strong{font-size:28px}
+ .weather-details{gap:8px}
+ .forecast{padding:12px 16px}
+ .forecast-row{margin-top:10px}
+ .forecast-day{gap:8px}
+ .weather-attribution{font-size:10px;gap:5px}
+ .time-heading{gap:10px;margin-bottom:12px}
+ .time-heading h1{font-size:23px}
+ .time-tab{min-height:44px;padding:4px 8px;font-size:14px}
+ .time-tab small{font-size:11px;min-height:12px;line-height:12px}
+ .time-mode-body .focus-layout,.time-mode-body .quick-timer{gap:14px}
+ .time-mode-body .focus-face,.time-mode-body .quick-timer-face{grid-template-rows:16px 76px 18px 44px;gap:5px}
+ .time-mode-body .timer-digits,.time-mode-body .quick-timer-face>strong{font-size:72px}
+ .time-mode-body .timer-controls>.button,.time-mode-body .reset-button{height:44px;min-height:44px;font-size:15px;padding:8px 14px}
+ .time-mode-body h2{font-size:20px;margin-bottom:8px}
+ .time-mode-body .timer-presets{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+ .time-mode-body .timer-presets .button{font-size:12px;padding:6px 3px;min-height:40px}
+ .time-mode-body .quick-timer form{margin-top:8px}
+ .time-mode-body .quick-timer form label{font-size:12px;margin-bottom:6px}
+ .time-mode-body .quick-timer input,.time-mode-body .quick-timer form .button{min-height:40px;padding:8px;font-size:14px}
+ .time-mode-body .duration-button{font-size:14px;min-height:40px;padding:8px 10px}
+ .time-mode-body .break-settings{margin-top:10px}
+ .computer-picker{margin:8px 0 12px}
+ .computer-choice{padding:8px 14px;min-height:44px}
+ .computer-metrics{gap:10px}
+ .computer-metrics .metric{padding:14px 16px}
+ .computer-metrics .metric strong{font-size:48px;margin:6px 0}
+ .computer-metrics .metric>span,.computer-metrics .metric p{font-size:13px}
+ .remote-card{padding:16px}
+ .remote-card>label{font-size:16px}
+ .volume-line{margin:4px 0 12px}
+ .volume-line output{font-size:34px;min-width:75px}
+ .remote-grid .button{min-height:52px;padding:8px;font-size:13px}
+ .remote-card .settings-note{font-size:11px;line-height:1.4;margin-top:12px}
+ .agenda-primary{padding:16px 18px}
+ .agenda-primary .agenda-when strong{font-size:32px}
+ .agenda-primary .agenda-when span{font-size:18px}
+ .agenda-primary h2{font-size:25px;margin-top:10px}
+ .agenda-upcoming .agenda-event{padding:12px 14px;gap:12px;grid-template-columns:86px 1fr}
+ .agenda-upcoming h2{font-size:19px}
+ .agenda-upcoming .agenda-when strong{font-size:21px}
+}
+
+@media(orientation:landscape) and (max-height:400px){
+ .overview-board .module-music{padding:0 10px;gap:0}
+ .module-music .overview-music-link{min-height:36px;justify-content:center}
+ .music-dashboard .music-launch{min-height:36px}
+ .agent-summary{margin-bottom:6px;font-size:13px}
+ .agent-group{margin-bottom:6px}
+ .agent-group-title{margin-bottom:4px}
+ .agent-group .agent-session{padding:8px 14px}
+ .group-recent .agent-session,.group-other .agent-session{padding:6px 12px}
+ .agenda-upcoming .agenda-event{padding:8px 12px}
+ .agenda-upcoming h2{font-size:16px}
+ .agenda-detail p{line-height:1.2;margin-top:2px}
+}
+@media(max-width:600px) and (orientation:portrait) and (max-height:700px){
+ .agenda-upcoming .agenda-event{padding:10px 12px}
+ .agenda-upcoming h2{font-size:18px}
+ .agenda-detail p{line-height:1.3;margin-top:4px}
+ .agenda-primary .agenda-detail p{margin-top:4px}
+}
+
+@media(max-width:600px) and (orientation:portrait) and (max-height:700px){
+ .overview-board .module-music{padding:0 10px;gap:2px}
+ .module-music .overview-music-link{min-height:36px;justify-content:center}
+ .module-music .module-detail{display:none}
+ .module-music .module-value{font-size:17px}
+ .module-music .module-label{font-size:11px}
+ .overview-music-controls .icon-button{min-width:36px;min-height:36px}
+ .overview-music-controls [data-music-toggle]{min-width:48px}
+}
+
+/* Screen order is edited independently from overview module order. */
+.settings-shortcuts{display:flex;gap:8px;margin:0 0 22px}
+.settings-shortcuts .button{flex:1;min-width:0;min-height:44px;font-size:13px;padding:10px}
+.screen-setting{position:relative;display:flex;gap:8px;align-items:center;min-height:64px;padding:8px 0}
+.screen-setting>label{flex:1;min-width:0;gap:8px;font-size:15px;line-height:1.3}
+.screen-setting>label .icon{width:18px;height:18px;flex-shrink:0}
+.screen-setting>label span{min-width:0;overflow-wrap:anywhere}
+.screen-setting>label input{flex-shrink:0}
+.screen-setting .screen-order-actions{display:flex;gap:0;flex-shrink:0}
+.screen-order-actions .icon-button{min-width:36px;min-height:44px;padding:6px}
+.screen-drag-handle{display:grid;place-items:center;flex-shrink:0;width:28px;min-height:44px;padding:0;font-size:25px;color:var(--muted);background:none;touch-action:none;cursor:grab;user-select:none;border-radius:8px}
+.screen-drag-handle:focus-visible{outline:2px solid var(--accent)}
+.screen-order-number{flex-shrink:0;width:20px;font-size:12px;font-variant-numeric:tabular-nums;color:var(--accent)}
+.screen-disabled>label,.screen-disabled>.screen-order-number{opacity:.5}
+.screen-setting.is-dragging{background:color-mix(in srgb,var(--accent) 10%,transparent);border-radius:10px}
+.screen-setting.is-dragging .screen-drag-handle{color:var(--accent);cursor:grabbing}
+.screen-setting.drop-before:before,.screen-setting.drop-after:after{content:"";position:absolute;left:0;right:0;height:3px;background:var(--accent);border-radius:3px;pointer-events:none}
+.screen-setting.drop-before:before{top:0}.screen-setting.drop-after:after{bottom:0}
+#screen-order-status:empty{display:none}
+@media(max-width:400px){.screen-setting{gap:5px}.screen-setting>label{font-size:14px;gap:6px}.screen-setting>label>.icon{display:none}.screen-order-actions .icon-button{min-width:34px}}
+
+.music-footer{display:grid;justify-items:center;gap:8px;width:100%;min-width:0}
+@media(orientation:landscape) and (max-height:400px){
+ .computer-dashboard .feature-empty,.remote-dashboard .feature-empty{padding:4px 0}
+ .feature-empty h2{font-size:24px;line-height:1.2;margin:0}
+ .feature-empty p{font-size:13px;line-height:1.4;margin:8px 0 12px}
+ .feature-empty .button{min-height:44px;font-size:14px}
+ .music-dashboard .music-targets .computer-choice{font-size:13px;line-height:1.1;padding:3px 12px;gap:1px}
+ .music-dashboard .music-targets .computer-choice small{font-size:10px;line-height:1.1}
+ .music-footer{display:flex;align-items:center;justify-content:center;gap:14px;min-height:36px}
+ .music-footer .music-launch{flex-shrink:0}
+ .music-footer .music-feedback,.music-footer .music-note{font-size:11px;min-width:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden}
+ .music-footer .music-feedback:empty{display:none}
+}
