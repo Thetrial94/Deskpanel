@@ -11,14 +11,14 @@ export function codexEvent(input,now=Date.now()){
  return {schemaVersion:1,id:hash(input.session_id),turnId:turn,title:project||'Codex',event,status,updatedAt:now};
 }
 export function mergeCodexEvent(previous,next){
- if(!previous)return {...next,startedAt:next.updatedAt};
+ if(!previous)return {...next,startedAt:next.updatedAt,statusSince:next.updatedAt};
  if(previous.updatedAt>next.updatedAt)return previous;
  if(next.event==='SessionStart'&&['working','approval','waiting'].includes(previous.status))return previous;
  const changedTurn=next.turnId&&previous.turnId&&next.turnId!==previous.turnId;
- return {...next,startedAt:changedTurn||next.event==='UserPromptSubmit'?next.updatedAt:previous.startedAt||next.updatedAt};
+ return {...next,statusSince:changedTurn||previous.status!==next.status?next.updatedAt:previous.statusSince||previous.updatedAt,startedAt:changedTurn||next.event==='UserPromptSubmit'?next.updatedAt:previous.startedAt||next.updatedAt};
 }
 export function codexSnapshot(records,now=Date.now(),configured=true){
  const valid=records.filter(r=>Number.isFinite(r?.updatedAt)&&Number.isFinite(r?.startedAt||r?.updatedAt)&&r?.schemaVersion===1&&/^[a-f0-9]{64}$/.test(r.id)&&EVENTS.includes(r.event)&&typeof r.title==='string'&&r.updatedAt<=now+5000&&now-r.updatedAt<86400000&&['working','approval','waiting','completed','interrupted','idle','closed'].includes(r.status));
- const sessions=valid.filter(r=>r.status!=='closed').map(r=>({id:r.id,title:r.title.slice(0,80),status:['working','approval','waiting'].includes(r.status)&&now-r.updatedAt>120000?'stale':r.status,updatedAt:new Date(r.updatedAt).toISOString(),startedAt:new Date(r.startedAt||r.updatedAt).toISOString()})).sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt)).slice(0,12);
+ const sessions=valid.filter(r=>r.status!=='closed').map(r=>({id:r.id,title:r.title.slice(0,80),status:['working','approval','waiting'].includes(r.status)&&now-r.updatedAt>120000?'stale':r.status,statusSince:new Date(['working','approval','waiting'].includes(r.status)&&now-r.updatedAt>120000?r.updatedAt+120000:Number.isFinite(r.statusSince)&&r.statusSince<=r.updatedAt?r.statusSince:r.updatedAt).toISOString(),updatedAt:new Date(r.updatedAt).toISOString(),startedAt:new Date(r.startedAt||r.updatedAt).toISOString()})).sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt)).slice(0,12);
  return {id:'codex',name:'Codex',connection:valid.length?'connected':configured?'awaiting_events':'not_configured',sessions,updatedAt:valid.length?new Date(Math.max(...valid.map(r=>r.updatedAt).filter(Number.isFinite))).toISOString():null};
 }

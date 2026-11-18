@@ -5,6 +5,7 @@ import { formatDate, escapeHTML } from './core/dom.js';
 import { icon } from './ui/icons.js';
 import { screens, screenById } from './screens/registry.js';
 import { WeatherSource, searchCities } from './data/weather.js';
+import { attentionNotice } from './core/agent-view.js';
 import { AgentSource } from './data/agents.js';
 import { BreakTimer } from './core/breaks.js';
 import { FeatureSource } from './data/features.js';
@@ -194,11 +195,12 @@ updateDate();setInterval(updateDate,30000);
 mountActive();updateRotationButton();weather.setCity(settings.city);agents.refresh();
 setInterval(()=>{if(!document.hidden)agents.refresh();},3000);setInterval(()=>weather.refresh(),60000);
 const questionNotice=document.querySelector('#agent-question');
-questionNotice.addEventListener('click',()=>{if(!enabled().includes('codex')){settings.enabledScreens.push('codex');persist();}go('codex');});
+let noticeProvider=null;
+questionNotice.addEventListener('click',()=>{if(!noticeProvider)return;if(!enabled().includes(noticeProvider)){settings.enabledScreens.push(noticeProvider);persist();}go(noticeProvider);});
 function updateQuestionNotice(){
- const waiting=agents.snapshot.codex.sessions.filter(s=>s.status==='waiting');
- questionNotice.hidden=!waiting.length||activeId==='codex';
- const label=waiting.length===1?'Codex ждёт ответа · '+waiting[0].title+' →':'Codex ждёт ответа · чатов: '+waiting.length+' →';
+ const notice=attentionNotice(agents.snapshot);noticeProvider=notice?.provider;
+ questionNotice.hidden=!notice||activeId===noticeProvider;
+ const label=notice?.label||'';
  if(questionNotice.textContent!==label)questionNotice.textContent=label;
  document.documentElement.classList.toggle('has-agent-question',!questionNotice.hidden);
 }

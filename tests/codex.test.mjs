@@ -50,3 +50,15 @@ test('expired locks recover and malformed records cannot claim a connection',asy
  assert.equal((await readCodexStatus(dir)).sessions[0].status,'working');
  assert.equal(codexSnapshot([{updatedAt:Date.now()}]).connection,'awaiting_events');
 });
+
+test('hook status duration survives repeated activity and resets for approval, completion and a new turn',()=>{
+ let state=mergeCodexEvent(null,codexEvent(input('UserPromptSubmit'),1000));
+ state=mergeCodexEvent(state,codexEvent(input('PreToolUse'),2000));assert.equal(state.statusSince,1000);
+ state=mergeCodexEvent(state,codexEvent(input('PermissionRequest'),3000));assert.equal(state.statusSince,3000);
+ assert.equal(codexSnapshot([state],4000).sessions[0].status,'approval');
+ state=mergeCodexEvent(state,codexEvent(input('PostToolUse'),5000));assert.equal(state.statusSince,5000);
+ state=mergeCodexEvent(state,codexEvent(input('PostToolUse'),6000));assert.equal(state.statusSince,5000);
+ state=mergeCodexEvent(state,codexEvent(input('Stop'),7000));assert.equal(state.statusSince,7000);
+ state=mergeCodexEvent(state,codexEvent(input('UserPromptSubmit',{turn_id:'turn-2'}),8000));assert.equal(state.statusSince,8000);
+ assert.equal(codexSnapshot([state],8000).sessions[0].statusSince,new Date(8000).toISOString());
+});

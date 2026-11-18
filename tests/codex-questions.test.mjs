@@ -28,7 +28,7 @@ async function fixture(t){
 test('async question persists after completed turn and clears only for matching service reply',async t=>{
  const f=await fixture(t);f.call('call_one');
  assert.equal((await f.read()).sessions[0].status,'waiting');
- assert.equal((await f.read(f.now+121000)).sessions[0].status,'waiting');
+ const later=await f.read(f.now+121000);assert.equal(later.sessions[0].status,'waiting');assert.equal(later.sessions[0].statusSince,new Date(Math.floor(f.now/1000)*1000).toISOString());
  f.message('PRIVATE ordinary reply');f.answer('call_other');
  assert.equal((await f.read()).sessions[0].status,'waiting');
  f.call('call_two');f.answer('call_one');
@@ -58,4 +58,12 @@ test('fresh routine hook cannot erase a known unanswered question',async t=>{
 test('technical parser rejects ambiguous calls',()=>{
  assert.equal(questionEvent(event('call_one','call_id=call_two')),null);
  assert.equal(JSON.parse(questionEvent(event('call_one','call_id=call_one'))).call,'call_one');
+});
+
+test('fresh permission request takes attention priority over an unanswered async question',async t=>{
+ const f=await fixture(t);f.call('call_one');await writeFile(join(f.dir,'installed.json'),'{"schemaVersion":1}');
+ await recordEvent({hook_event_name:'PermissionRequest',session_id:'live'},f.dir);
+ assert.equal((await readCodexStatus(f.dir,{metadataReader:()=>f.read()})).sessions[0].status,'approval');
+ await recordEvent({hook_event_name:'PostToolUse',session_id:'live'},f.dir);
+ assert.equal((await readCodexStatus(f.dir,{metadataReader:()=>f.read()})).sessions[0].status,'waiting');
 });

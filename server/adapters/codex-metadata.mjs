@@ -24,7 +24,9 @@ export async function readCodexMetadata(home=process.env.CODEX_HOME||join(homedi
    const stamp=Math.max(updated,completed||0);if(!Number.isFinite(stamp)||stamp>now+5000||now-stamp>DAY||!Number.isFinite(started))continue;
    const id=createHash('sha256').update(row.id).digest('hex');
    const title=typeof row.name==='string'?row.name.replace(/\s+/g,' ').trim().slice(0,160):'';
-   sessions.push({id,title:title||'Сессия '+id.slice(0,8),status:questions?.pending(row.id)?'waiting':mapped==='working'&&now-stamp>STALE?'stale':mapped,updatedAt:new Date(stamp).toISOString(),startedAt:new Date(started||stamp).toISOString(),source:'local_metadata'});
+   const pendingSince=questions?.pending(row.id),status=pendingSince?'waiting':mapped==='working'&&now-stamp>STALE?'stale':mapped;
+   const since=pendingSince||(status==='working'?started:status==='stale'?stamp+STALE:completed);
+   sessions.push({id,title:title||'Сессия '+id.slice(0,8),status,statusSince:since>0&&since<=now+5000?new Date(since).toISOString():null,updatedAt:new Date(stamp).toISOString(),startedAt:new Date(started||stamp).toISOString(),source:'local_metadata'});
   }
   sessions.sort((a,b)=>({waiting:2,working:1}[b.status]||0)-({waiting:2,working:1}[a.status]||0)||Date.parse(b.updatedAt)-Date.parse(a.updatedAt));
   return {id:'codex',name:'Codex',connection:'connected',source:'local_metadata',sessions:sessions.slice(0,12),updatedAt:sessions.length?new Date(Math.max(...sessions.map(s=>Date.parse(s.updatedAt)))).toISOString():null};

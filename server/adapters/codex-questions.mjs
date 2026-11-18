@@ -39,14 +39,15 @@ export async function questionReader(home,history,now){
      for(const row of replies.all(thread,now-DAY)){
       try{const id=JSON.parse(row.id);if(Array.isArray(id)&&id[0]==='request_user_input_async'&&/^call_[A-Za-z0-9_-]+$/.test(id[1])&&Number.isInteger(id[2])&&id[2]>=0)answered.add(id[1]);}catch{}
      }
+     let since=null;
      for(const row of calls.all(thread,Math.floor((now-DAY)/1000),Math.floor((now+5000)/1000))){
       if(!row.event)continue;const event=JSON.parse(row.event);
       if(answered.has(event.call))continue;
       const turn=turnStatus.get(thread,event.turn);
-      if(turn&&['inProgress','completed'].includes(turn.status))return true;
+      if(turn&&['inProgress','completed'].includes(turn.status))since=Math.min(since??Infinity,row.ts*1000);
      }
-     return false;
-    }catch{return false;}
+     return since;
+    }catch{return null;}
    },close(){logs.close();}
   };
  }catch{try{logs?.close();}catch{}return null;}
