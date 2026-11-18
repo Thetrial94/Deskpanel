@@ -1,3 +1,4 @@
+import {OVERVIEW_MODULES} from './core/overview.js';
 import {ComputerSources} from './data/computers.js';
 import { ServerConnection } from './core/connection.js';
 import { loadSettings, normalizeSettings, saveSettings,resolveScreenId } from './core/settings.js';
@@ -86,6 +87,14 @@ function renderScreenSettings() {
     return '<div class="screen-setting"><label><input type="checkbox" data-enable="'+id+'" '+(on?'checked':'')+' '+(last?'disabled':'')+'>'+icon(screenById.get(id).icon)+'<span>'+screenById.get(id).title+'</span></label><div><button class="icon-button small-button" data-move="'+id+'" data-delta="-1" aria-label="'+screenById.get(id).title+': выше" '+(index===0?'disabled':'')+'>'+icon('up')+'</button><button class="icon-button small-button" data-move="'+id+'" data-delta="1" aria-label="'+screenById.get(id).title+': ниже" '+(index===settings.screenOrder.length-1?'disabled':'')+'>'+icon('down')+'</button></div></div>';
   }).join('');
 }
+function renderOverviewSettings(){
+ const selected=new Set(settings.overviewModules);
+ document.querySelector('#overview-module-settings').innerHTML=OVERVIEW_MODULES.map(m=>'<label class="setting-row"><span>'+m.title+'<small>'+m.description+'</small></span><input type="checkbox" data-overview-module="'+m.id+'" '+(selected.has(m.id)?'checked':'')+' '+(selected.size===1&&selected.has(m.id)?'disabled':'')+'></label>').join('');
+}
+document.querySelector('#overview-module-settings').addEventListener('change',e=>{
+ const id=e.target.dataset.overviewModule;if(!id)return;
+ settings.overviewModules=e.target.checked?[...settings.overviewModules,id]:settings.overviewModules.filter(m=>m!==id);persist();renderOverviewSettings();if(activeId==='overview')mountActive();
+});
 function renderCity() {
   document.querySelector('#selected-city').textContent = settings.city ? 'Выбран: '+settings.city.name+(settings.city.country ? ' · '+settings.city.country : '') : 'Город пока не выбран. Данные появятся после настройки.';
   document.querySelector('#city-clear').hidden = !settings.city;
@@ -95,7 +104,7 @@ function openSettings() {
   document.querySelector('#setting-interval').value = String(settings.interval);
   document.querySelector('#setting-resume').value = String(settings.resumeAfter);
   document.querySelector('#setting-evening-start').value=settings.eveningStart;document.querySelector('#setting-evening-end').value=settings.eveningEnd;
-  renderScreenSettings(); renderCity(); dialog.showModal(); connections.open();
+  renderScreenSettings(); renderOverviewSettings(); renderCity(); dialog.showModal(); connections.open();
 }
 const connections = setupConnections(document.querySelector('#connections-settings'),{settings:()=>settings,saveDevices:devices=>{settings.devices=devices;persist();if(activeId==='computer')mountActive();},changed:()=>{computers.refresh(true);agents.refresh(true);calendar.refresh();home.refresh();remote.refresh();music.refresh(true);}});
 function closeSettings() { dialog.close(); interact(); }
@@ -123,7 +132,7 @@ document.querySelector('#rotation-toggle').addEventListener('click',toggleRotati
 nav.addEventListener('click',e=>{const button=e.target.closest('[data-screen]');if(button)go(button.dataset.screen);});
 document.querySelector('.brand').addEventListener('click',e=>{e.preventDefault();go('overview');});
 stage.addEventListener('click',e=>{
-  if(e.target.closest('[data-settings]'))openSettings();
+  if(e.target.closest('[data-settings]')){openSettings();if(e.target.closest('[data-overview-settings]'))document.querySelector('#overview-settings').scrollIntoView({block:'start'});}
   const hide=e.target.closest('[data-hide-screen]');if(hide&&settings.enabledScreens.length>1){settings.enabledScreens=settings.enabledScreens.filter(id=>id!==hide.dataset.hideScreen);persist();return;}
   const meeting=e.target.closest('[data-meeting]');if(meeting){context.meetingId=meeting.dataset.meeting;navigate('meeting');return;}
   const link=e.target.closest('[data-go]');if(link)navigate(link.dataset.go);
@@ -227,7 +236,7 @@ let noticeProvider=null;
 questionNotice.addEventListener('click',()=>{if(!noticeProvider)return;if(!enabled().includes(noticeProvider)){settings.enabledScreens.push(noticeProvider);persist();}go(noticeProvider);});
 function updateQuestionNotice(){
  const notice=attentionNotice(agents.snapshot);noticeProvider=notice?.provider;
- questionNotice.hidden=isEvening(settings)||!notice||activeId===noticeProvider;
+ questionNotice.hidden=isEvening(settings)||!notice||activeId===noticeProvider||activeId==='overview'&&settings.overviewModules.includes(noticeProvider);
  const label=notice?.label||'';
  if(questionNotice.textContent!==label)questionNotice.textContent=label;
  document.documentElement.classList.toggle('has-agent-question',!questionNotice.hidden);
