@@ -79,3 +79,41 @@
 .time-mode-body>section{width:100%}.time-mode-body h2{font-size:26px;line-height:1.2;margin:0 0 18px}.time-mode-body .timer-ring{position:static;width:100%;aspect-ratio:auto}.time-mode-body .timer-ring>svg{display:none}.time-mode-body .timer-center{position:static;gap:10px}.time-mode-body .timer-digits{font-size:clamp(68px,11vw,145px);line-height:1.05}.time-mode-body .timer-center .eyebrow{font-size:13px}.time-mode-body .focus-face{gap:18px}.time-mode-body .break-settings{margin-top:16px}.time-mode-body .break-settings select{font-size:16px}.time-mode-body .focus-copy>p:empty{display:none}
 @media(orientation:landscape) and (max-height:520px){.time-heading{margin-bottom:16px;gap:20px;flex-wrap:nowrap}.time-heading h1{font-size:24px}.time-tabs{max-width:650px}.time-mode-body .focus-layout,.time-mode-body .quick-timer{gap:24px;grid-template-columns:1fr 1fr}.time-mode-body .timer-digits,.time-mode-body .quick-timer-face>strong{font-size:82px}.time-mode-body h2{font-size:23px;margin-bottom:14px}.time-mode-body .focus-face{gap:14px}.time-mode-body .timer-controls>.button{min-width:0;font-size:16px;min-height:48px}.time-mode-body .timer-center .small{font-size:13px}}
 @media(max-width:600px) and (orientation:portrait){.time-heading{gap:12px;margin-bottom:24px}.time-heading h1{width:100%}.time-tabs{width:100%}.time-tab{padding:10px 8px;font-size:16px}.time-mode-body .focus-layout,.time-mode-body .quick-timer{grid-template-columns:1fr;gap:26px}.time-mode-body .focus-face{grid-row:1}.time-mode-body .timer-digits{font-size:90px}.time-mode-body .timer-controls>.button{min-width:0}}
+
+/* Every time mode shares the same anchors; switching tabs must not recenter it. */
+.stage>.time-dashboard{margin-block:0;align-self:stretch;display:flex;flex-direction:column}
+.time-heading{flex-shrink:0}.time-tabs,.time-tab,.time-mode-body{min-width:0}
+.time-tab{flex-direction:column;flex-wrap:nowrap;gap:2px;padding:8px 12px;min-height:56px}
+.time-tab small{display:block;min-height:16px;line-height:16px}.time-tab small:empty{display:block;visibility:hidden}
+.time-mode-body{flex:1;min-height:0}
+.time-mode-body .focus-layout,.time-mode-body .quick-timer{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;align-items:start}
+.time-mode-body .focus-copy,.time-mode-body .quick-timer-setup{min-width:0;text-align:left}
+.time-mode-body h2{min-height:2.4em;margin-bottom:14px}
+.time-mode-body .focus-face,.time-mode-body .quick-timer-face{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:18px auto 20px 54px;gap:10px;align-items:center;justify-items:center;text-align:center;container-type:inline-size}
+.time-mode-body .timer-ring,.time-mode-body .timer-center{display:contents}
+.time-mode-body [data-timer-label],.time-mode-body [data-timer-state],.time-mode-body [data-break-phase]{grid-row:1;font-size:12px;line-height:18px;letter-spacing:.08em}
+.time-mode-body .timer-digits,.time-mode-body .quick-timer-face>strong{grid-row:2;margin:0;font-size:clamp(48px,11vw,145px);font-size:clamp(44px,19cqw,145px);font-weight:300;line-height:1.05;letter-spacing:-.05em;white-space:nowrap}
+.time-mode-body [data-timer-caption],.time-mode-body [data-break-count]{grid-row:3;line-height:20px;font-size:13px}
+.time-mode-body .timer-controls{grid-row:4;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:min(100%,320px);justify-content:center;gap:10px;margin:0}
+.time-mode-body .timer-controls>.button{min-width:0;min-height:54px;padding:10px 16px}
+.time-mode-body .reset-button{width:100%;height:54px;min-height:54px;min-width:54px}
+.time-mode-body .duration-options{justify-content:flex-start}
+@media(orientation:landscape) and (max-height:520px){
+ .time-mode-body .focus-face,.time-mode-body .quick-timer-face{grid-template-rows:18px auto 20px 48px;gap:8px}
+ .time-mode-body .timer-digits,.time-mode-body .quick-timer-face>strong{font-size:clamp(44px,9vw,90px);font-size:clamp(44px,19cqw,90px)}
+ .time-mode-body .timer-controls>.button{min-height:48px;padding:8px 16px}
+ .time-mode-body .reset-button{height:48px;min-height:48px;min-width:48px}
+ .time-mode-body .timer-presets{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+ .time-mode-body .timer-presets .button{min-width:0;min-height:44px;padding:8px 4px;font-size:15px;white-space:nowrap}
+ .time-mode-body .duration-button{min-height:44px;font-size:16px}
+ .time-mode-body .quick-timer form{margin-top:12px}.time-mode-body .quick-timer form label{font-size:13px;margin-bottom:6px}
+ .time-mode-body .quick-timer input{min-height:44px;padding:8px}
+ .time-mode-body .quick-timer form .button{min-height:44px;padding:8px 14px}
+}
+@media(max-width:600px) and (orientation:portrait){
+ .time-mode-body .focus-layout,.time-mode-body .quick-timer{grid-template-columns:minmax(0,1fr);gap:26px}
+ .time-mode-body .focus-face,.time-mode-body .quick-timer-face{grid-row:1}
+ .time-mode-body .focus-copy,.time-mode-body .quick-timer-setup{text-align:center}
+ .time-mode-body .duration-options{justify-content:center}
+ .time-mode-body h2{min-height:0}
+}
