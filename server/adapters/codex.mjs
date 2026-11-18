@@ -14,7 +14,7 @@ export async function readCodexStatus(dir=defaultStateDir(),{metadataReader=read
   const metadata=await metadataReader().catch(()=>null);
   if(metadata){
    const merged=new Map(metadata.sessions.map(s=>[s.id,s]));
-   for(const session of snapshot.sessions){const fresh=Date.now()-Date.parse(session.updatedAt)<=120000;if(fresh||!merged.has(session.id))merged.set(session.id,{...session,title:merged.get(session.id)?.title||session.title,source:'hooks'});}
+   for(const session of snapshot.sessions){const fresh=Date.now()-Date.parse(session.updatedAt)<=120000;if(merged.get(session.id)?.status!=='waiting'&&(fresh||!merged.has(session.id)))merged.set(session.id,{...session,title:merged.get(session.id)?.title||session.title,source:'hooks'});}
    const sessions=[...merged.values()].sort((a,b)=>Number(['working','approval','waiting'].includes(b.status))-Number(['working','approval','waiting'].includes(a.status))||Date.parse(b.updatedAt)-Date.parse(a.updatedAt)).slice(0,12);
    return {...metadata,sessions,updatedAt:sessions.length?new Date(Math.max(...sessions.map(s=>Date.parse(s.updatedAt)))).toISOString():null};
   }

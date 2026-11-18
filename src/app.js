@@ -193,11 +193,21 @@ function updateDate(){document.querySelector('#top-date').textContent=formatDate
 updateDate();setInterval(updateDate,30000);
 mountActive();updateRotationButton();weather.setCity(settings.city);agents.refresh();
 setInterval(()=>{if(!document.hidden)agents.refresh();},3000);setInterval(()=>weather.refresh(),60000);
+const questionNotice=document.querySelector('#agent-question');
+questionNotice.addEventListener('click',()=>{if(!enabled().includes('codex')){settings.enabledScreens.push('codex');persist();}go('codex');});
+function updateQuestionNotice(){
+ const waiting=agents.snapshot.codex.sessions.filter(s=>s.status==='waiting');
+ questionNotice.hidden=!waiting.length||activeId==='codex';
+ const label=waiting.length===1?'Codex ждёт ответа · '+waiting[0].title+' →':'Codex ждёт ответа · чатов: '+waiting.length+' →';
+ if(questionNotice.textContent!==label)questionNotice.textContent=label;
+ document.documentElement.classList.toggle('has-agent-question',!questionNotice.hidden);
+}
+agents.subscribe(updateQuestionNotice);
 const breakReminder=document.querySelector('#break-reminder');
 breakReminder.addEventListener('click',()=>{if(!enabled().includes('breaks')){settings.enabledScreens.push('breaks');persist();}go('breaks');});
 setInterval(()=>{
  if(focus.tick())toast('Время фокуса закончилось. Можно отдохнуть.');
- breaks.tick();
+ breaks.tick();updateQuestionNotice();
  breakReminder.hidden=!breaks.due||activeId==='breaks';
  breakReminder.textContent=breaks.phase==='work'?'Пора отдохнуть →':'Перерыв завершён →';
 },250);
