@@ -34,7 +34,7 @@ test('hook installation merges existing commands and remains idempotent',()=>{
  assert.ok(merged.hooks.PermissionRequest.every(group=>group.hooks.every(h=>!h.async)));
 });
 test('hook writes atomic state consumed by adapter; CLI outputs a neutral response',async t=>{
- const dir=await mkdtemp(join(tmpdir(),'deskpanel-codex-test-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+ const dir=await mkdtemp(join(tmpdir(),'deskpanel-codex-test-'));t.after(()=>rm(dir,{recursive:true,force:true,maxRetries:3,retryDelay:100}));
  await recordEvent(input('UserPromptSubmit'),dir);await recordEvent(input('Stop'),dir);
  const result=await readCodexStatus(dir);assert.equal(result.connection,'connected');assert.equal(result.sessions[0].status,'completed');
  const names=await readdir(dir);assert.equal(names.length,1);assert.match(names[0],/^[a-f0-9]{64}\.json$/);
@@ -44,7 +44,7 @@ test('hook writes atomic state consumed by adapter; CLI outputs a neutral respon
  const cliState=await readCodexStatus(join(dir,'DeskPanel','codex'));assert.equal(cliState.sessions.length,1);
 });
 test('expired locks recover and malformed records cannot claim a connection',async t=>{
- const dir=await mkdtemp(join(tmpdir(),'deskpanel-lock-test-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+ const dir=await mkdtemp(join(tmpdir(),'deskpanel-lock-test-'));t.after(()=>rm(dir,{recursive:true,force:true,maxRetries:3,retryDelay:100}));
  const event=codexEvent(input('PreToolUse')),lock=join(dir,event.id+'.json.lock');await writeFile(lock,'');const old=new Date(Date.now()-20000);await utimes(lock,old,old);
  assert.equal(await recordEvent(input('PostToolUse'),dir),true);
  assert.equal((await readCodexStatus(dir)).sessions[0].status,'working');
