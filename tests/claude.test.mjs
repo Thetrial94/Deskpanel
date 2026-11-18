@@ -4,7 +4,7 @@ import {mkdtemp,readdir,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {execFileSync} from 'node:child_process';
-import {claudeEvent,claudeSnapshot} from '../server/claude-state.mjs';
+import {claudeEvent,claudeSnapshot,mergeClaudeEvent} from '../server/claude-state.mjs';
 import {mergeCodexEvent} from '../server/codex-state.mjs';
 import {recordClaudeEvent} from '../scripts/claude-hook.mjs';
 import {readClaudeStatus} from '../server/adapters/claude.mjs';
@@ -19,7 +19,10 @@ test('Claude hook keeps only lifecycle metadata and hashes the session id',()=>{
 test('Claude statuses: work, question, permission, completion and stale',()=>{
  let state=mergeCodexEvent(null,claudeEvent(input('UserPromptSubmit'),1000));
  state=mergeCodexEvent(state,claudeEvent(input('PreToolUse',{tool_name:'AskUserQuestion'}),2000));assert.equal(state.status,'waiting');
+ state=mergeCodexEvent(state,claudeEvent(input('PermissionRequest',{tool_name:'AskUserQuestion'}),2500));assert.equal(state.status,'waiting');
+ state=mergeClaudeEvent(state,claudeEvent(input('Notification',{notification_type:'permission_prompt'}),2700));assert.equal(state.status,'waiting');
  state=mergeCodexEvent(state,claudeEvent(input('PostToolUse',{tool_name:'AskUserQuestion'}),3000));assert.equal(state.status,'working');
+ assert.equal(claudeEvent(input('PermissionRequest',{tool_name:'Bash'}),1).status,'approval');
  state=mergeCodexEvent(state,claudeEvent(input('Notification',{notification_type:'permission_prompt'}),4000));assert.equal(state.status,'approval');assert.equal(state.startedAt,1000);
  assert.equal(claudeSnapshot([state],130000).sessions[0].status,'stale');
  state=mergeCodexEvent(state,claudeEvent(input('Stop'),5000));assert.equal(state.status,'completed');
