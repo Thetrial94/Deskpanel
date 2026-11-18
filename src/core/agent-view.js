@@ -3,8 +3,7 @@ export function sortSessions(sessions){return [...sessions].sort((a,b)=>(rank[a.
 export function sessionGroups(sessions){
  const sorted=sortSessions(sessions);
  return [
-  {id:'attention',title:'Нужно внимание',sessions:sorted.filter(s=>['approval','waiting','error'].includes(s.status))},
-  {id:'active',title:'В работе',sessions:sorted.filter(s=>s.status==='working')},
+  {id:'current',title:'Сейчас',sessions:sorted.filter(s=>['approval','waiting','error','working'].includes(s.status))},
   {id:'other',title:'Другие состояния',sessions:sorted.filter(s=>!['approval','waiting','error','working','completed','interrupted'].includes(s.status))},
   {id:'recent',title:'Недавно',sessions:sorted.filter(s=>['completed','interrupted'].includes(s.status))}
  ].filter(group=>group.sessions.length);

@@ -30,10 +30,13 @@
 .session-status-line {display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px 16px;}
 .agent-group .session-status {font-size:22px;}
 .session-age {font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;}
-.group-attention .session-status {font-size:26px;}
+.group-current .state-approval .session-status,.group-current .state-waiting .session-status {font-size:26px;}
 .group-recent .agent-session-grid,.group-other .agent-session-grid {grid-template-columns:1fr;gap:8px;}
 .group-recent .agent-session,.group-other .agent-session {display:flex;align-items:center;gap:12px 24px;padding:14px 18px;}
 .group-recent h3,.group-other h3 {order:-1;flex:1;font-size:20px;margin:0;}
 .group-recent .session-status,.group-other .session-status {font-size:15px;}
 @media(max-width:600px){.agent-group .agent-session-grid{grid-template-columns:1fr}.agent-summary{font-size:17px;margin-bottom:20px}.agent-session h3{font-size:28px}.group-recent .agent-session,.group-other .agent-session{align-items:flex-start;flex-direction:column;gap:8px}.group-recent .session-status-line,.group-other .session-status-line{width:100%}.group-recent h3,.group-other h3{font-size:20px}}
-@media(orientation:landscape) and (max-height:520px){.agent-summary{font-size:16px;margin-bottom:16px}.agent-group{margin-bottom:20px}.agent-group .agent-session{padding:16px 20px}.agent-session h3{font-size:27px;margin-top:10px}.group-recent h3,.group-other h3{font-size:20px;margin:0}.group-attention .session-status{font-size:23px}.agent-group-title{margin-bottom:8px}}
+@media(orientation:landscape) and (max-height:520px){.agent-summary{font-size:16px;margin-bottom:16px}.agent-group{margin-bottom:20px}.agent-group .agent-session{padding:16px 20px}.agent-session h3{font-size:27px;margin-top:10px}.group-recent h3,.group-other h3{font-size:20px;margin:0}.group-current .state-approval .session-status,.group-current .state-waiting .session-status{font-size:23px}.agent-group-title{margin-bottom:8px}}
+
+/* A single current chat uses the entire row; two share it across statuses. */
+.group-current .agent-session:only-child {grid-column:1 / -1;}
