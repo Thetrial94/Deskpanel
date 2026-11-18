@@ -5,8 +5,8 @@ import {homedir} from 'node:os';
 import {pathToFileURL} from 'node:url';
 import {codexEvent,mergeCodexEvent} from '../server/codex-state.mjs';
 export const defaultStateDir=()=>join(process.env.LOCALAPPDATA||join(homedir(),'.local','share'),'DeskPanel','codex');
-export async function recordEvent(input,dir=defaultStateDir()){
- const next=codexEvent(input);if(!next)return false;
+export async function recordEvent(input,dir=defaultStateDir(),parse=codexEvent){
+ const next=parse(input);if(!next)return false;
  await mkdir(dir,{recursive:true});const file=join(dir,next.id+'.json'),lock=file+'.lock';let handle;
  for(let i=0;i<10;i++){try{handle=await open(lock,'wx');break;}catch(e){if(e.code!=='EEXIST')throw e;try{if(Date.now()-(await stat(lock)).mtimeMs>10000)await unlink(lock);}catch{}await new Promise(r=>setTimeout(r,25));}}
  if(!handle)return false;

@@ -98,7 +98,7 @@ server/
   bridge.mjs          # единый контракт статусов
   adapters/
     codex.mjs         # заглушка для следующего этапа
-    claude.mjs        # заглушка для следующего этапа
+    claude.mjs        # статусы Claude Code из hooks (см. docs/claude.md)
 tests/                # поведенческие тесты без дополнительных пакетов
 docs/
   architecture.md     # контракт модулей и границы этапов

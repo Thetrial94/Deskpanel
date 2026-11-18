@@ -17,8 +17,8 @@ export function mergeCodexEvent(previous,next){
  const changedTurn=next.turnId&&previous.turnId&&next.turnId!==previous.turnId;
  return {...next,statusSince:changedTurn||previous.status!==next.status?next.updatedAt:previous.statusSince||previous.updatedAt,startedAt:changedTurn||next.event==='UserPromptSubmit'?next.updatedAt:previous.startedAt||next.updatedAt};
 }
-export function codexSnapshot(records,now=Date.now(),configured=true){
- const valid=records.filter(r=>Number.isFinite(r?.updatedAt)&&Number.isFinite(r?.startedAt||r?.updatedAt)&&r?.schemaVersion===1&&/^[a-f0-9]{64}$/.test(r.id)&&EVENTS.includes(r.event)&&typeof r.title==='string'&&r.updatedAt<=now+5000&&now-r.updatedAt<86400000&&['working','approval','waiting','completed','interrupted','idle','closed'].includes(r.status));
+export function codexSnapshot(records,now=Date.now(),configured=true,provider={id:'codex',name:'Codex',events:EVENTS}){
+ const valid=records.filter(r=>Number.isFinite(r?.updatedAt)&&Number.isFinite(r?.startedAt||r?.updatedAt)&&r?.schemaVersion===1&&/^[a-f0-9]{64}$/.test(r.id)&&provider.events.includes(r.event)&&typeof r.title==='string'&&r.updatedAt<=now+5000&&now-r.updatedAt<86400000&&['working','approval','waiting','completed','interrupted','idle','closed'].includes(r.status));
  const sessions=valid.filter(r=>r.status!=='closed').map(r=>({id:r.id,title:r.title.slice(0,80),status:['working','approval','waiting'].includes(r.status)&&now-r.updatedAt>120000?'stale':r.status,statusSince:new Date(['working','approval','waiting'].includes(r.status)&&now-r.updatedAt>120000?r.updatedAt+120000:Number.isFinite(r.statusSince)&&r.statusSince<=r.updatedAt?r.statusSince:r.updatedAt).toISOString(),updatedAt:new Date(r.updatedAt).toISOString(),startedAt:new Date(r.startedAt||r.updatedAt).toISOString()})).sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt)).slice(0,12);
- return {id:'codex',name:'Codex',connection:valid.length?'connected':configured?'awaiting_events':'not_configured',sessions,updatedAt:valid.length?new Date(Math.max(...valid.map(r=>r.updatedAt).filter(Number.isFinite))).toISOString():null};
+ return {id:provider.id,name:provider.name,connection:valid.length?'connected':configured?'awaiting_events':'not_configured',sessions,updatedAt:valid.length?new Date(Math.max(...valid.map(r=>r.updatedAt).filter(Number.isFinite))).toISOString():null};
 }

@@ -12,7 +12,7 @@ export function createAgentScreen(id,name){return {
    root.querySelector('[data-connection]').textContent=agentConnection[state.connection]||'Нет связи';
    root.querySelector('[data-summary]').textContent=state.connection==='connected'?agentSummary(current):'';
    if(state.connection!=='connected'){
-    const note=state.connection==='pair_required'?'Введи код с компьютера в настройках панели.':state.connection==='awaiting_events'?'Открой Codex и отправь сообщение в чат. Если статус не появится, проверь подключение на компьютере.':state.connection==='disconnected'?'Проверь компьютер и подключение к панели.':id==='codex'?'Установи мост событий Codex на компьютере.':'Интеграция Claude пока не настроена.';
+    const note=state.connection==='pair_required'?'Введи код с компьютера в настройках панели.':state.connection==='awaiting_events'?'Открой '+name+' и отправь сообщение в чат. Если статус не появится, проверь подключение на компьютере.':state.connection==='disconnected'?'Проверь компьютер и подключение к панели.':'Установи мост событий '+name+' на компьютере.';
     body.innerHTML='<div class="functional-empty"><h2>'+esc(agentConnection[state.connection]||'Нет связи')+'</h2><p>'+note+'</p>'+(state.connection==='pair_required'?'<button class="button button-primary" data-settings>Подключить телефон</button>':'<button class="button button-soft" data-hide-screen="'+id+'">Убрать из автосмены</button>')+'</div>';return;
    }
    if(!current.length){body.innerHTML='<div class="functional-empty"><h2>Нет активных сессий</h2><p>Новые события появятся автоматически.</p></div>';return;}
