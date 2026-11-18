@@ -1,11 +1,11 @@
-import {OVERVIEW_MODULES} from './overview.js';
+import {OVERVIEW_MODULES,DEFAULT_OVERVIEW_MODULES,MAX_OVERVIEW_MODULES} from './overview.js';
 export const SCREEN_IDS = ['overview', 'weather', 'music', 'codex', 'claude', 'timers', 'services', 'computer', 'remote', 'calendar', 'home'];
 export const DEFAULT_CITY = Object.freeze({name: 'Москва', latitude: 55.7558, longitude: 37.6173, country: 'Россия'});
 export const DEFAULTS = Object.freeze({
   version: 6, autoRotate: true, interval: 20, resumeAfter: 30,
   screenOrder: SCREEN_IDS, enabledScreens: SCREEN_IDS,
   smartTransitions: true, eveningMode: true, eveningStart: 22, eveningEnd: 7,
-  overviewModules: OVERVIEW_MODULES.map(m=>m.id),
+  overviewModules: DEFAULT_OVERVIEW_MODULES,
   showSeconds: false, dimAtNight: false, city: DEFAULT_CITY, devices: []
 });
 export const resolveScreenId = id => ({clock:'overview',focus:'timers',breaks:'timers'}[id]||id);
@@ -19,8 +19,9 @@ export function normalizeSettings(value = {}) {
   if (!(value.version >= 3) && enabled.length && !enabled.includes('music')) enabled.push('music');
   if (!(value.version >= 4) && enabled.length) for(const id of ['computer','remote','calendar','home','timers']) if(!enabled.includes(id))enabled.push(id);
   if (!(value.version >= 5) && enabled.length && !enabled.includes('timers')) enabled.push('timers');
-  const chosenModules=Array.isArray(value.overviewModules)?[...new Set(value.overviewModules.map(id=>id==='weather'?'clock':id))].filter(id=>OVERVIEW_MODULES.some(m=>m.id===id)):OVERVIEW_MODULES.map(m=>m.id);
-  const overviewModules=chosenModules.length?chosenModules:['clock'];
+  const chosenModules=Array.isArray(value.overviewModules)?[...new Set(value.overviewModules.map(id=>id==='weather'?'clock':id))].filter(id=>OVERVIEW_MODULES.some(m=>m.id===id)):DEFAULT_OVERVIEW_MODULES;
+  const overviewModules=chosenModules.length?chosenModules.slice(0,MAX_OVERVIEW_MODULES):['clock'];
+  if(overviewModules.includes('clock'))overviewModules.unshift(...overviewModules.splice(overviewModules.indexOf('clock'),1));
   const devices = (Array.isArray(value.devices)?value.devices:[]).flatMap(d=>{try{const u=new URL(d.url);if(!['http:','https:'].includes(u.protocol)||u.username||u.password||u.search||u.hash||u.pathname!=='/'||typeof d.name!=='string'||!d.name.trim())return [];return [{name:d.name.trim().slice(0,60),url:u.origin}];}catch{return [];}}).slice(0,8);
   const c = value.city === undefined || (value.city === null && !(value.version >= 2)) ? DEFAULT_CITY : value.city;
   const city = c && typeof c.name === 'string' && typeof c.latitude === 'number' && typeof c.longitude === 'number' &&

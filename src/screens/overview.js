@@ -1,48 +1,49 @@
-import {overviewAgent} from '../core/overview.js';
+import {OVERVIEW_MODULES,DEFAULT_OVERVIEW_MODULES,overviewWidget} from '../core/overview.js';
 import {formatTime,formatDate,mountTicker} from '../core/dom.js';
-import {calendarDateLabel} from '../core/calendar.js';
-import {sessionStatus} from '../core/agent-labels.js';
-import {overviewContext,countdown,meetingCountdown,isEvening} from '../core/context.js';
+import {isEvening} from '../core/context.js';
 import {weatherLabel} from '../data/weather.js';
 import {icon} from '../ui/icons.js';
+const workModules=new Set(['primary','codex','claude','calendar','meeting','focus']);
 export default {id:'overview',title:'Обзор',icon:'overview',accent:'lime',mount(root,ctx){
- root.innerHTML='<section class="context-overview"><div class="overview-clock"><div data-clock-module><div class="context-time" data-clock></div><div class="context-date" data-date></div></div><button class="context-weather text-button" data-go="weather"></button></div><div class="overview-context"><button class="card context-card" data-primary hidden><span class="widget-label" data-label></span><strong data-title></strong><span data-detail></span></button><div class="compact-music" data-music hidden><button class="text-button" data-go="music"><span data-track></span></button><button class="icon-button" data-music-toggle aria-label="Пауза">'+icon('pause')+'</button><button class="icon-button" data-next aria-label="Следующий трек">'+icon('next')+'</button></div></div><div class="overview-agents" data-overview-agents><button class="card overview-agent" data-go="codex" data-agent="codex"><span class="overview-agent-head">Codex <span data-agent-count></span></span><strong data-agent-title></strong><span data-agent-detail></span></button><button class="card overview-agent" data-go="claude" data-agent="claude"><span class="overview-agent-head">Claude <span data-agent-count></span></span><strong data-agent-title></strong><span data-agent-detail></span></button></div><div class="overview-empty" data-overview-empty hidden><p>Сейчас нет событий для выбранных модулей.</p><button class="text-button" data-settings data-overview-settings>Настроить обзор</button></div></section>';
- const primary=root.querySelector('[data-primary]');let target=null,eventId=null,timeMode=null;
+ const ids=ctx.settings().overviewModules||DEFAULT_OVERVIEW_MODULES,widgets=new Map(),nodes=new Map();
+ const catalog=new Map(OVERVIEW_MODULES.map(m=>[m.id,m]));
+ root.innerHTML='<section class="overview-board">'+ids.map(id=>{
+  if(id==='clock')return '<div class="overview-clock overview-module module-clock" data-overview-module-card="clock"><div class="context-time" data-clock></div><button class="context-weather text-button" data-go="weather"></button><div class="context-date" data-date></div></div>';
+  if(id==='music')return '<article class="card overview-module module-music" data-overview-module-card="music" data-music><button class="overview-music-link" data-open-module="music"><span class="module-label">Музыка</span><strong class="module-value"></strong><span class="module-detail"></span></button><div class="overview-music-controls"><button class="icon-button" data-music-toggle aria-label="Воспроизведение / пауза"></button><button class="icon-button" data-next aria-label="Следующий трек">'+icon('next')+'</button></div></article>';
+  return '<button class="card overview-module module-'+id+'" data-overview-module-card="'+id+'" data-open-module="'+id+'" '+(['codex','claude'].includes(id)?'data-agent="'+id+'"':'')+' '+(id==='primary'?'data-primary':'')+'><span class="module-label">'+catalog.get(id).title+'<span data-count></span></span><strong class="module-value" '+(['codex','claude'].includes(id)?'data-agent-title':'')+'></strong><span class="module-detail"></span></button>';
+ }).join('')+'<div class="overview-empty" data-overview-empty hidden><p>Вечерний режим скрывает выбранные рабочие блоки.</p><button class="text-button" data-settings data-overview-settings>Настроить обзор</button></div></section>';
+ for(const id of ids)nodes.set(id,root.querySelector('[data-overview-module-card="'+id+'"]'));
  const render=()=>{
-  const modules=new Set(ctx.settings().overviewModules||['clock','primary','music','codex','claude']);
-  const now=Date.now(),quiet=isEvening(ctx.settings(),now),data=overviewContext({calendar:ctx.calendar.snapshot,agents:ctx.agents.snapshot,timer:ctx.timer,focus:ctx.focus,breaks:ctx.breaks,quiet},now);
-  root.querySelector('[data-clock]').classList.toggle('has-seconds',ctx.settings().showSeconds);root.querySelector('[data-clock]').textContent=formatTime(new Date(now),ctx.settings().showSeconds);root.querySelector('[data-date]').textContent=formatDate(new Date(now),{weekday:'long'});
-  const showPrimary=modules.has('primary')&&!!data;
-  primary.hidden=!showPrimary;target=data?.target;eventId=data?.event?.id;timeMode=data?.mode;
-  if(data){let label,title,detail;
-   if(data.kind==='agent'){label=(data.session.provider==='codex'?'Codex':'Claude')+' · '+sessionStatus(data.session);title=data.session.title;detail='Открыть чат на панели →';}
-   else if(data.kind==='timer'){label=data.label;title=countdown(data.seconds);detail='Открыть управление →';}
-   else{label=data.kind==='meeting'?'Встреча начинается':'Ближайшее событие';title=data.event.title;detail=data.kind==='meeting'?meetingCountdown(data.event,now):calendarDateLabel(data.event)+' · '+(data.event.allDay?'весь день':new Date(data.event.start).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Moscow'}));}
-   root.querySelector('[data-label]').textContent=label;root.querySelector('[data-title]').textContent=title;root.querySelector('[data-detail]').textContent=detail;
+  const now=Date.now(),quiet=isEvening(ctx.settings(),now);let visible=0;
+  for(const id of ids){
+   const node=nodes.get(id);node.hidden=quiet&&workModules.has(id);if(node.hidden)continue;visible++;
+   if(id==='clock'){
+    const w=ctx.weather.state;node.querySelector('[data-clock]').textContent=formatTime(new Date(now),ctx.settings().showSeconds);node.querySelector('[data-clock]').classList.toggle('has-seconds',ctx.settings().showSeconds);node.querySelector('[data-date]').textContent=formatDate(new Date(now),{weekday:'long'});
+    node.querySelector('.context-weather').textContent=(w.city?.name||'Выбрать город')+(w.data?' · '+Math.round(w.data.current.temperature_2m)+'° · '+weatherLabel(w.data.current.weather_code):w.error?' · нет связи':'');continue;
+   }
+   const widget=overviewWidget(id,ctx,now);widgets.set(id,widget);node.dataset.status=widget.status||'idle';
+   node.querySelector('.module-value').textContent=widget.title;node.querySelector('.module-value').title=widget.title;
+   node.querySelector('.module-detail').textContent=widget.detail||'';
+   if(id!=='music'){node.querySelector('.module-label').firstChild.textContent=widget.label||catalog.get(id).title;node.querySelector('[data-count]').textContent=widget.count?String(widget.count):'';}
+   else{const playing=ctx.music.snapshot.playback==='playing',toggle=node.querySelector('[data-music-toggle]');toggle.innerHTML=icon(playing?'pause':'play');toggle.setAttribute('aria-label',playing?'Пауза':'Играть');for(const button of node.querySelectorAll('.overview-music-controls button'))button.disabled=ctx.music.pending||ctx.music.snapshot.connection!=='connected';}
   }
-  const m=ctx.music.snapshot,showMusic=modules.has('music')&&m.connection==='connected'&&m.playback==='playing'&&!!m.track?.title;root.querySelector('[data-music]').hidden=!showMusic;root.querySelector('[data-track]').textContent=m.track?.title||'';for(const b of root.querySelectorAll('[data-music-toggle],[data-next]'))b.disabled=ctx.music.pending;
-  const clock=modules.has('clock'),weather=clock;
-  root.querySelector('[data-clock-module]').hidden=!clock;root.querySelector('.context-weather').hidden=!weather;
-  root.querySelector('.overview-clock').hidden=!clock&&!weather;
-  root.querySelector('.overview-context').hidden=!showPrimary&&!showMusic;
-  let agentCount=0;
-  for(const id of ['codex','claude']){
-   const node=root.querySelector('[data-agent="'+id+'"]'),shown=modules.has(id)&&!quiet;node.hidden=!shown;if(!shown)continue;agentCount++;
-   const info=overviewAgent(ctx.agents.snapshot[id]);node.dataset.status=info.status;
-   node.querySelector('[data-agent-count]').textContent=info.count?String(info.count):'';
-   node.querySelector('[data-agent-title]').textContent=info.title;node.querySelector('[data-agent-title]').title=info.title;
-   node.querySelector('[data-agent-detail]').textContent=info.detail;
-  }
-  root.querySelector('[data-overview-agents]').hidden=!agentCount;
-  const section=root.querySelector('section'),content=showPrimary||showMusic,left=clock||weather;
-  section.classList.toggle('clock-only',left&&!content&&!agentCount);
-  section.classList.toggle('music-only',left&&!showPrimary&&showMusic&&!agentCount);
-  section.classList.toggle('overview-single-column',!left||!content);
-  section.classList.toggle('has-agent-modules',agentCount>0);
-  root.querySelector('[data-overview-empty]').hidden=left||content||agentCount>0;
+  const shown=ids.filter(id=>!nodes.get(id).hidden),board=root.querySelector('section');board.dataset.count=visible;board.classList.toggle('with-clock',ids.includes('clock'));board.classList.toggle('span-clock',ids.includes('clock')&&visible>=3&&visible%2===1);
+  for(const id of ids)nodes.get(id).classList.toggle('module-wide',!ids.includes('clock')&&visible%2===1&&id===shown.at(-1));
+  root.querySelector('[data-overview-empty]').hidden=visible>0;
  };
- const weather=ctx.weather.subscribe(s=>{root.querySelector('.context-weather').textContent=(s.city?.name||'Выбрать город')+(s.data?' · '+Math.round(s.data.current.temperature_2m)+'° · '+weatherLabel(s.data.current.weather_code):s.error?' · нет связи':'');});
- const stops=[weather,ctx.calendar.subscribe(render),ctx.agents.subscribe(render),ctx.music.subscribe(render),mountTicker(root,render)];
- const click=e=>{if(e.target.closest('[data-primary]')&&target){if(eventId)ctx.meetingId=eventId;if(timeMode)ctx.timeMode=timeMode;ctx.navigate(target);}if(e.target.closest('[data-music-toggle]'))ctx.music.command('toggle');if(e.target.closest('[data-next]'))ctx.music.command('next');};root.addEventListener('click',click);
- return ()=>{stops.forEach(stop=>stop());root.removeEventListener('click',click);};
+ const sources=new Set();
+ for(const id of ids){
+  if(id==='clock')sources.add(ctx.weather);
+  if(['primary','calendar','meeting','services'].includes(id))sources.add(ctx.calendar);
+  if(['primary','codex','claude','services'].includes(id))sources.add(ctx.agents);
+  if(['music','services'].includes(id))sources.add(ctx.music);
+  if(['home','services'].includes(id))sources.add(ctx.home);
+  if(id==='computers')sources.add(ctx.computers);
+ }
+ const stops=[...sources].map(source=>source.subscribe(render));stops.push(mountTicker(root,render));
+ const click=e=>{
+  const open=e.target.closest('[data-open-module]');if(open){const widget=widgets.get(open.dataset.openModule);if(widget){if(widget.eventId)ctx.meetingId=widget.eventId;if(widget.mode)ctx.timeMode=widget.mode;ctx.navigate(widget.target);}}
+  if(e.target.closest('[data-music-toggle]'))ctx.music.command('toggle');if(e.target.closest('[data-next]'))ctx.music.command('next');
+ };
+ root.addEventListener('click',click);return ()=>{stops.forEach(stop=>stop());root.removeEventListener('click',click);};
 }};

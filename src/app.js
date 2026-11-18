@@ -1,4 +1,4 @@
-import {OVERVIEW_MODULES} from './core/overview.js';
+import {OVERVIEW_MODULES,MAX_OVERVIEW_MODULES} from './core/overview.js';
 import {ComputerSources} from './data/computers.js';
 import { ServerConnection } from './core/connection.js';
 import { loadSettings, normalizeSettings, saveSettings,resolveScreenId } from './core/settings.js';
@@ -88,12 +88,25 @@ function renderScreenSettings() {
   }).join('');
 }
 function renderOverviewSettings(){
- const selected=new Set(settings.overviewModules);
- document.querySelector('#overview-module-settings').innerHTML=OVERVIEW_MODULES.map(m=>'<label class="setting-row"><span>'+m.title+'<small>'+m.description+'</small></span><input type="checkbox" data-overview-module="'+m.id+'" '+(selected.has(m.id)?'checked':'')+' '+(selected.size===1&&selected.has(m.id)?'disabled':'')+'></label>').join('');
+ const selected=new Set(settings.overviewModules),full=selected.size>=MAX_OVERVIEW_MODULES;
+ document.querySelector('#overview-module-counter').textContent='Выбрано '+selected.size+' из '+MAX_OVERVIEW_MODULES+' · в каталоге '+OVERVIEW_MODULES.length;
+ document.querySelector('#overview-module-settings').innerHTML=OVERVIEW_MODULES.map(m=>{
+  const on=selected.has(m.id),i=settings.overviewModules.indexOf(m.id),disabled=on?selected.size===1:full;
+  return '<div class="overview-option"><label class="setting-row"><span>'+m.title+'<small>'+m.description+'</small></span><input type="checkbox" data-overview-module="'+m.id+'" '+(on?'checked':'')+' '+(disabled?'disabled':'')+'></label>'+(on&&m.id==='clock'?'<span class="overview-anchor">Слева сверху</span>':on?'<div class="overview-module-order"><button class="icon-button small-button" data-overview-move="'+m.id+'" data-delta="-1" aria-label="'+m.title+': выше" '+(i===(selected.has('clock')?1:0)?'disabled':'')+'>↑</button><span>'+(i+1)+'</span><button class="icon-button small-button" data-overview-move="'+m.id+'" data-delta="1" aria-label="'+m.title+': ниже" '+(i===selected.size-1?'disabled':'')+'>↓</button></div>':'')+'</div>';
+ }).join('');
+ document.querySelector('#overview-module-hint').textContent=full?'Выбрано пять. Убери один модуль, чтобы добавить другой.':'Выбери ещё '+(MAX_OVERVIEW_MODULES-selected.size)+'. Порядок меняется стрелками у выбранных модулей.';
 }
+function updateOverviewSettings(){persist();renderOverviewSettings();if(activeId==='overview')mountActive();}
 document.querySelector('#overview-module-settings').addEventListener('change',e=>{
  const id=e.target.dataset.overviewModule;if(!id)return;
- settings.overviewModules=e.target.checked?[...settings.overviewModules,id]:settings.overviewModules.filter(m=>m!==id);persist();renderOverviewSettings();if(activeId==='overview')mountActive();
+ if(e.target.checked&&settings.overviewModules.length>=MAX_OVERVIEW_MODULES){e.target.checked=false;return;}
+ settings.overviewModules=e.target.checked?[...settings.overviewModules,id]:settings.overviewModules.filter(m=>m!==id);updateOverviewSettings();
+});
+document.querySelector('#overview-module-settings').addEventListener('click',e=>{
+ const button=e.target.closest('[data-overview-move]');if(!button||button.disabled)return;
+ const from=settings.overviewModules.indexOf(button.dataset.overviewMove),to=from+Number(button.dataset.delta);
+ if(from<0||button.dataset.overviewMove==='clock'||to<(settings.overviewModules.includes('clock')?1:0)||to>=settings.overviewModules.length)return;
+ [settings.overviewModules[from],settings.overviewModules[to]]=[settings.overviewModules[to],settings.overviewModules[from]];updateOverviewSettings();
 });
 function renderCity() {
   document.querySelector('#selected-city').textContent = settings.city ? 'Выбран: '+settings.city.name+(settings.city.country ? ' · '+settings.city.country : '') : 'Город пока не выбран. Данные появятся после настройки.';
