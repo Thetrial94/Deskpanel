@@ -53,7 +53,7 @@ test('optional question schema failure keeps basic status available',async t=>{
 test('fresh routine hook cannot erase a known unanswered question',async t=>{
  const f=await fixture(t);f.call('call_one');await writeFile(join(f.dir,'installed.json'),'{"schemaVersion":1}');
  await recordEvent({hook_event_name:'UserPromptSubmit',session_id:'live'},f.dir);
- const result=await readCodexStatus(f.dir,{metadataReader:()=>f.read()});assert.equal(result.sessions[0].status,'waiting');
+ const result=await readCodexStatus(f.dir,{metadataReader:()=>f.read(),usageReader:()=>null});assert.equal(result.sessions[0].status,'waiting');
 });
 test('technical parser rejects ambiguous calls',()=>{
  assert.equal(questionEvent(event('call_one','call_id=call_two')),null);
@@ -63,7 +63,7 @@ test('technical parser rejects ambiguous calls',()=>{
 test('fresh permission request takes attention priority over an unanswered async question',async t=>{
  const f=await fixture(t);f.call('call_one');await writeFile(join(f.dir,'installed.json'),'{"schemaVersion":1}');
  await recordEvent({hook_event_name:'PermissionRequest',session_id:'live'},f.dir);
- assert.equal((await readCodexStatus(f.dir,{metadataReader:()=>f.read()})).sessions[0].status,'approval');
+ assert.equal((await readCodexStatus(f.dir,{metadataReader:()=>f.read(),usageReader:()=>null})).sessions[0].status,'approval');
  await recordEvent({hook_event_name:'PostToolUse',session_id:'live'},f.dir);
- assert.equal((await readCodexStatus(f.dir,{metadataReader:()=>f.read()})).sessions[0].status,'waiting');
+ assert.equal((await readCodexStatus(f.dir,{metadataReader:()=>f.read(),usageReader:()=>null})).sessions[0].status,'waiting');
 });

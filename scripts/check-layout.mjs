@@ -7,7 +7,7 @@ import {createAppServer} from '../server/index.mjs';
 import {Features} from '../server/features.mjs';
 import {Network} from '../server/network.mjs';
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
-let scenario={connection:'connected',playback:'playing',long:false,many:false};
+let scenario={connection:'connected',playback:'playing',long:false,many:false,quota:'fresh'};
 let data={network:{name:'Ноутбук',nodes:[{id:'demo-pc',name:'Стационарный ПК',url:'http://192.168.0.200:4317'}],bindings:{music:'local'}}};
 const store={get:async()=>data,update:async fn=>(data=fn(structuredClone(data)))};
 const metrics=()=>({connection:scenario.connection,name:'Демонстрационный компьютер',cpu:23,memory:{used:12*1073741824,total:32*1073741824},uptime:186000});
@@ -18,7 +18,7 @@ features.calendar.status=async()=>({connection:scenario.connection,events:events
 features.home.status=async()=>({connection:scenario.connection,provider:'yandex',devices:Array.from({length:scenario.many?12:4},(_,i)=>({id:'device'+i,name:scenario.long?'Настольная лампа рабочего места '+i:['Настольная лампа','Розетка монитора','Температура','Подсветка кухни'][i%4],kind:i%4===2?'devices.types.sensor':'devices.types.light',on:i%2===0,controllable:i%4!==2,value:i%4===2?'23 °C':null,household:{id:'flat',name:'Квартира'},room:{id:'room'+Math.floor(i/3),name:i<3?'Кабинет':'Кухня'}}))});
 let volume=40;
 const music={status:async()=>({schemaVersion:1,connection:scenario.connection,enhanced:true,playback:scenario.playback,volume,track:{title:scenario.long?'Очень длинное название музыкальной композиции с дополнительной версией и приглашёнными исполнителями':'Ночной город',artist:scenario.long?'Демонстрационная группа · Концертная запись в большом зале':'Демонстрационный исполнитель'}}),command:async(command,value)=>{if(command==='toggle')scenario.playback=scenario.playback==='playing'?'paused':'playing';if(command==='volume')volume=value;return {accepted:true,error:null};},close(){}};
-const agentReader=async()=>({schemaVersion:1,providers:['codex','claude'].map(id=>({id,connection:scenario.connection,sessions:Array.from({length:scenario.many?7:2},(_,i)=>({id:id+i,title:scenario.long?'Переработка модульной панели и проверка всех экранов в разных ориентациях':'Задача '+(i+1)+' · '+id,status:i===0?'working':i===1?'completed':i===2?'waiting':'completed',updatedAt:new Date().toISOString(),statusSince:new Date(Date.now()-360000).toISOString()}))}))});
+const agentReader=async()=>({schemaVersion:1,providers:['codex','claude'].map(id=>({id,connection:scenario.connection,usage:scenario.quota==='missing'?null:{status:'available',updatedAt:new Date(Date.now()-(scenario.quota==='stale'?3600000:0)).toISOString(),windows:{fiveHour:{usedPercent:id==='codex'?25:95,resetsAt:new Date(Date.now()+(scenario.quota==='expired'?-1000:3600000)).toISOString()},week:{usedPercent:id==='codex'?60:30,resetsAt:new Date(Date.now()+86400000).toISOString()}}},sessions:Array.from({length:scenario.many?7:2},(_,i)=>({id:id+i,title:scenario.long?'Переработка модульной панели и проверка всех экранов в разных ориентациях':'Задача '+(i+1)+' · '+id,status:i===0?'working':i===1?'completed':i===2?'waiting':'completed',updatedAt:new Date().toISOString(),statusSince:new Date(Date.now()-360000).toISOString()}))}))});
 const weather={get:async()=>{if(scenario.connection!=='connected')throw Error('offline');return {provider:'met',current:{temperature_2m:3,weather_code:3,relative_humidity_2m:78,wind_speed_10m:12},daily:{time:Array.from({length:5},(_,i)=>new Date(Date.now()+i*86400000).toISOString().slice(0,10)),weather_code:[3,2,3,3,1],temperature_2m_max:[4,3,2,1,3],temperature_2m_min:[1,0,-1,-2,0]},updatedAt:Date.now()};},search:async()=>[]};
 const network=new Network(store);
 network.request=async(node,resource)=>({status:200,data:resource==='access'?{paired:true}:resource==='computer'?metrics():resource==='remote'?remote():resource==='agents'?await agentReader():await music.status()});
@@ -38,7 +38,7 @@ try{
  ws=new WebSocket(page.webSocketDebuggerUrl);await new Promise((r,j)=>{ws.onopen=r;ws.onerror=j;});let seq=0;const pending=new Map(),errors=[];
  ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id){const p=pending.get(m.id);pending.delete(m.id);m.error?p.reject(Error(m.error.message)):p.resolve(m.result);}if(m.method==='Runtime.exceptionThrown')errors.push(m.params.exceptionDetails.exception?.description||m.params.exceptionDetails.text);};
  const call=(method,params={})=>new Promise((resolve,reject)=>{const id=++seq;pending.set(id,{resolve,reject});ws.send(JSON.stringify({id,method,params}));});
- const evaluate=async expression=>{const r=await call('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.text);return r.result.value;};
+ const evaluate=async expression=>{const r=await call('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description||r.exceptionDetails.text);return r.result.value;};
  await call('Page.enable');await call('Runtime.enable');await call('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});await call('Emulation.setDeviceMetricsOverride',{width:1122,height:504,deviceScaleFactor:1,mobile:false});
  await call('Page.navigate',{url:base});await delay(1500);
  await evaluate(`localStorage.setItem('deskpanel.settings.v1',JSON.stringify({version:6,autoRotate:false,smartTransitions:false,eveningMode:false}));`);await call('Page.reload');await delay(1500);
@@ -46,6 +46,7 @@ try{
  const results=[];
  const views=[['overview','overview'],['weather','weather'],['music','music'],['codex','codex'],['claude','claude'],['timer','timers'],['focus','timers'],['breaks','timers'],['services','services'],['computer','computer'],['remote','remote'],['calendar','calendar'],['home','home'],['meeting','meeting']];
  async function visit(name,id){
+  await waitFor(`document.querySelector('[data-screen="${id==='meeting'?'overview':id}"]')!==null`,'Navigation did not load: '+id);
   if(id==='meeting')await evaluate(`document.querySelector('.brand').click();document.querySelector('[data-primary]').click()`);
   else await evaluate(`document.querySelector('[data-screen="${id}"]').click()`);
   await delay(220);
@@ -59,7 +60,11 @@ try{
  }
  for(const [viewport,width,height] of [['landscape',1122,504],['portrait',412,892],['compact',800,360],['small-portrait',360,640]]){
   await call('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false});
-  for(const [name,id] of views){await visit(name,id);await capture(name,viewport);}
+  for(const [name,id] of views){await visit(name,id);await capture(name,viewport);
+   if(['codex','claude'].includes(id)){
+    assert.equal(await evaluate(`document.querySelectorAll('[data-quota]').length`),2);
+    assert.equal(await evaluate(`document.querySelector('[data-quota="fiveHour"] meter').value`),id==='codex'?75:5);
+   }}
  }
  // Edge cases use only synthetic data and never operate a real machine.
  for(const [state,change] of [['paused',{playback:'paused'}],['long',{long:true}],['many',{many:true}],['offline',{connection:'disconnected'}],['stopped',{connection:'stopped'}]]){
@@ -69,6 +74,19 @@ try{
    for(const [name,id] of views.filter(([n])=>['music','overview',...(state==='many'?['codex','calendar','home']:[]),...(state==='offline'?['weather','claude','computer','remote','calendar','home','services']:[])].includes(n))){await visit(name,id);await capture(state+'-'+name,viewport);}
   }
  }
+ // Missing, stale and reset windows must remain explicit at every size.
+ Object.assign(scenario,{connection:'connected',long:false,many:false});
+ for(const quota of ['missing','stale','expired']){
+  scenario.quota=quota;await call('Page.reload');await delay(500);
+  for(const [viewport,width,height] of [['landscape',1122,504],['portrait',412,892],['compact',800,360],['small-portrait',360,640]]){
+   await call('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false});
+   for(const id of ['codex','claude']){
+    await visit(id,id);await capture(quota+'-'+id,viewport);
+    assert.equal(await evaluate(`document.querySelector('[data-quota="fiveHour"] .quota-note').textContent`),quota==='missing'?'Нет данных':quota==='stale'?'Данные устарели':'Ожидаем обновление');
+   }
+  }
+ }
+ scenario.quota='fresh';
  // Functional checks exercise rendered controls against synthetic adapters.
  Object.assign(scenario,{connection:'connected',playback:'playing',long:false,many:false});
  await call('Page.reload');await delay(500);await visit('music','music');

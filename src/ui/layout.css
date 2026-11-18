@@ -301,3 +301,36 @@
  .music-footer .music-feedback,.music-footer .music-note{font-size:11px;min-width:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden}
  .music-footer .music-feedback:empty{display:none}
 }
+
+/* Two account-wide windows, shared by all chats from the selected provider computer. */
+.agent-quotas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 16px}
+.agent-quota{border:1px solid var(--line);background:var(--panel);padding:10px 14px;border-radius:14px;min-width:0;--quota-color:var(--accent)}
+.quota-heading{display:flex;align-items:baseline;justify-content:space-between;gap:6px;font-size:13px;color:var(--muted)}
+.quota-heading strong{font-size:25px;font-weight:500;color:var(--quota-color);font-variant-numeric:tabular-nums;white-space:nowrap}
+.quota-heading small{font-size:11px;font-weight:400;color:var(--muted)}
+.agent-quota meter,.quota-empty-bar{display:block;width:100%;height:5px;margin:6px 0;border:0;border-radius:9px;background:var(--line)}
+.agent-quota meter::-webkit-meter-bar{height:5px;border:0;background:var(--line);border-radius:9px}
+.agent-quota meter::-webkit-meter-optimum-value,.agent-quota meter::-webkit-meter-suboptimum-value,.agent-quota meter::-webkit-meter-even-less-good-value{background:var(--quota-color);border-radius:9px}
+.agent-quota meter::-moz-meter-bar{background:var(--quota-color);border-radius:9px}
+.quota-note{display:block;color:var(--muted);font-size:11px;line-height:1.3}
+.quota-warning{--quota-color:#f5d57a}.quota-critical{--quota-color:#f4a89e}.quota-unknown,.quota-stale{--quota-color:var(--muted)}
+@media(orientation:landscape){
+ .agent-dashboard>.screen-heading{margin-bottom:10px}
+ .agent-quotas{gap:12px;margin-bottom:10px}
+ .agent-quota{padding:7px 12px}
+}
+@media(orientation:landscape) and (max-height:400px){
+ .agent-dashboard>.screen-heading{margin-bottom:6px}
+ .agent-quota{padding:5px 10px}
+ .quota-heading strong{font-size:20px}
+ .agent-quotas{margin-bottom:6px;gap:10px}
+ .agent-quota meter,.quota-empty-bar{margin:3px 0}
+ .quota-note{font-size:10px}
+}
+@media(max-width:400px) and (orientation:portrait){
+ .agent-quotas{gap:8px}
+ .agent-quota{padding:8px 10px}
+ .quota-heading{font-size:12px;flex-wrap:wrap;gap:0 6px}
+ .quota-heading strong{font-size:23px}
+ .quota-heading small{font-size:10px}
+}

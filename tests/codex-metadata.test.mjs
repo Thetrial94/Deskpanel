@@ -41,10 +41,10 @@ test('missing or incompatible databases stay unavailable and are not created',as
 });
 test('metadata requires installed opt-in and fresh hook states take priority',async t=>{
  const dir=await fixture(t);let calls=0;const now=Date.now();const metadataReader=async()=>{calls++;return {id:'codex',connection:'connected',sessions:[{id:createHash('sha256').update('live').digest('hex'),title:'Подключение Codex',status:'working',source:'local_metadata',updatedAt:new Date(now).toISOString()}],updatedAt:new Date(now).toISOString()};};
- assert.equal((await readCodexStatus(dir,{metadataReader})).connection,'not_configured');assert.equal(calls,0);
+ assert.equal((await readCodexStatus(dir,{metadataReader,usageReader:()=>null})).connection,'not_configured');assert.equal(calls,0);
  await writeFile(join(dir,'installed.json'),JSON.stringify({schemaVersion:1}));
  await recordEvent({hook_event_name:'PermissionRequest',session_id:'live',cwd:'C:/Projects/DeskPanel'},dir);
- const result=await readCodexStatus(dir,{metadataReader});assert.equal(calls,1);assert.equal(result.sessions[0].status,'approval');assert.equal(result.sessions[0].source,'hooks');assert.equal(result.sessions.length,1);assert.equal(result.sessions[0].title,'Подключение Codex');
+ const result=await readCodexStatus(dir,{metadataReader,usageReader:()=>null});assert.equal(calls,1);assert.equal(result.sessions[0].status,'approval');assert.equal(result.sessions[0].source,'hooks');assert.equal(result.sessions.length,1);assert.equal(result.sessions[0].title,'Подключение Codex');
  const staleFile=join(dir,result.sessions[0].id+'.json');await writeFile(staleFile,JSON.stringify({schemaVersion:1,id:result.sessions[0].id,title:'DeskPanel',status:'approval',event:'PermissionRequest',updatedAt:now-121000,startedAt:now-130000}));
- const fallback=await readCodexStatus(dir,{metadataReader});assert.equal(fallback.sessions[0].source,'local_metadata');assert.equal(sessionStatus(fallback.sessions[0]),'В процессе');
+ const fallback=await readCodexStatus(dir,{metadataReader,usageReader:()=>null});assert.equal(fallback.sessions[0].source,'local_metadata');assert.equal(sessionStatus(fallback.sessions[0]),'В процессе');
 });
