@@ -1,3 +1,4 @@
+import {Weather} from './weather.mjs';
 import {checkRequest} from './http-guard.mjs';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
@@ -10,7 +11,7 @@ import { MusicBridge } from './music.mjs';
 import { handleMusic } from './music-http.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.json':'application/json; charset=utf-8'};
-export function createAppServer({music=new MusicBridge(),features=new Features(),agentReader=readAgentSnapshot}={}) {
+export function createAppServer({music=new MusicBridge(),features=new Features(),agentReader=readAgentSnapshot,weather=new Weather()}={}) {
   const server = createServer(async (req, res) => {
     const send = (status, body, type = 'application/json; charset=utf-8') => {
       res.writeHead(status, {'Content-Type':type,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'});
@@ -18,6 +19,13 @@ export function createAppServer({music=new MusicBridge(),features=new Features()
     };
     try {
       const path = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+      if(['/api/weather','/api/cities'].includes(path)){
+       if(!['GET','HEAD'].includes(req.method)){send(405,'{"error":"method_not_allowed"}');return;}
+       if(!checkRequest(req)){send(403,'{"error":"invalid_origin"}');return;}
+       const params=new URL(req.url,'http://localhost').searchParams;
+       try{const data=path==='/api/weather'?await weather.get(params.get('latitude'),params.get('longitude')):await weather.search(params.get('q'));send(200,JSON.stringify(data));}
+       catch{send(503,'{"error":"weather_unavailable"}');}return;
+      }
       if(await features.handle(path,req,res,send))return;
       if(path === '/api/music'){await handleMusic(req,send,music);return;}
       if (!['GET','HEAD'].includes(req.method)) { res.setHeader('Allow','GET, HEAD'); send(405, '{"error":"method_not_allowed"}'); return; }

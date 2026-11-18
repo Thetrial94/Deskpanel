@@ -1,0 +1,10 @@
+import {mountTicker} from '../core/dom.js';
+import {countdown} from '../core/context.js';
+export default {id:'timers',title:'Таймеры',icon:'focus',accent:'lavender',mount(root,ctx){
+ root.innerHTML='<section class="quick-timer"><div class="quick-timer-setup"><h2>Быстрый отсчёт</h2><div class="timer-presets">'+[1,5,10,15,30].map(n=>'<button class="button button-soft" data-minutes="'+n+'">'+n+' мин</button>').join('')+'</div><form data-custom-timer><label for="custom-minutes">Свой интервал, минуты</label><div><input id="custom-minutes" type="number" min="1" max="1440" step="1" value="5" required><button class="button button-soft">Запустить</button></div></form></div><div class="quick-timer-face"><span class="muted" data-timer-label></span><strong data-countdown></strong><div class="timer-controls"><button class="button button-primary" data-toggle></button><button class="button button-soft" data-reset>Сбросить</button></div></div></section>';
+ const render=()=>{root.querySelector('[data-countdown]').textContent=countdown(ctx.timer.seconds());root.querySelector('[data-timer-label]').textContent=ctx.timer.completed?'Время вышло':ctx.timer.deadline?'Осталось':ctx.timer.remaining<ctx.timer.duration?'На паузе':'Готов к запуску';root.querySelector('[data-toggle]').textContent=ctx.timer.deadline?'Пауза':ctx.timer.completed?'Ещё раз':'Начать';};
+ const click=e=>{const b=e.target.closest('[data-minutes]');if(b){ctx.timer.set(Number(b.dataset.minutes));ctx.timer.start();}if(e.target.closest('[data-toggle]'))ctx.timer.deadline?ctx.timer.pause():ctx.timer.start();if(e.target.closest('[data-reset]'))ctx.timer.reset();render();};
+ const submit=e=>{e.preventDefault();if(ctx.timer.set(Number(root.querySelector('#custom-minutes').value)))ctx.timer.start();render();};
+ root.addEventListener('click',click);root.querySelector('form').addEventListener('submit',submit);const stop=mountTicker(root,render,250);
+ return ()=>{stop();root.removeEventListener('click',click);root.querySelector('form').removeEventListener('submit',submit);};
+}};
