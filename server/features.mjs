@@ -1,3 +1,4 @@
+import {openMeeting} from './open-meeting.mjs';
 import {ConnectionStore,validateConfig} from './connections.mjs';
 import {DeviceAccess} from './access.mjs';
 import {Computer} from './computer.mjs';
@@ -5,7 +6,7 @@ import {Calendar} from './calendar.mjs';
 import {Home} from './home.mjs';
 import {checkRequest,readJSON,localRequest} from './http-guard.mjs';
 export class Features {
- constructor({store=new ConnectionStore(),computer=new Computer()}={}){this.store=store;this.access=new DeviceAccess(store);this.computer=computer;this.calendar=new Calendar(store);this.home=new Home(store);}
+ constructor({store=new ConnectionStore(),computer=new Computer(),meetingOpener=openMeeting}={}){this.meetingOpener=meetingOpener;this.store=store;this.access=new DeviceAccess(store);this.computer=computer;this.calendar=new Calendar(store);this.home=new Home(store);}
  async handle(path,req,res,send){
   if(!['/api/access','/api/connections','/api/computer','/api/remote','/api/calendar','/api/home'].includes(path))return false;
   if(!['GET','HEAD','POST'].includes(req.method)){send(405,'{"error":"method_not_allowed"}');return true;}
@@ -35,7 +36,10 @@ export class Features {
     const config=await this.store.get();
     json(200,{local,calendar:!!config.calendar,home:config.home?.provider||null});return true;
    }
-   if(path==='/api/calendar'&&req.method!=='POST'){json(200,await this.calendar.status());return true;}
+   if(path==='/api/calendar'){
+    if(req.method==='POST'){const data=await readJSON(req);if(data.command!=='open'||Object.keys(data).some(k=>!['command','id'].includes(k)))throw Error('invalid_meeting');const result=await this.calendar.open(data.id,this.meetingOpener);json(result.accepted?200:409,result);}
+    else json(200,await this.calendar.status());return true;
+   }
    if(path==='/api/home'){
     if(req.method==='POST'){const data=await readJSON(req);json(200,await this.home.command(data.id,data.on));}
     else json(200,await this.home.status());

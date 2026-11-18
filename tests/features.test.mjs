@@ -33,8 +33,8 @@ test('configuration validates destinations and never accepts credentials in URLs
  for(const url of ['http://calendar.yandex.ru/x','https://example.com/x','https://user:pass@calendar.yandex.ru/x','https://calendar.yandex.ru.evil.test/'])assert.throws(()=>validateConfig({kind:'calendar',url}));
  for(const base of ['http://example.com','https://user:pass@ha.example.com','https://ha.example.com/?token=x'])assert.throws(()=>validateConfig({kind:'home',provider:'ha',base,token:'test-token-123'}));
  assert.equal(validateConfig({kind:'home',provider:'ha',base:'http://192.168.0.2:8123',token:'test-token-123'}).value.base,'http://192.168.0.2:8123');
- const settings=normalizeSettings({version:4,enabledScreens:['clock'],city:null,devices:[{name:'PC',url:'http://192.168.0.2:4317/'},{name:'bad',url:'javascript:alert(1)'},{name:'bad2',url:'http://user:pass@example.com'}]});
- assert.deepEqual(settings.enabledScreens,['clock']);assert.equal(settings.city,null);assert.deepEqual(settings.devices,[{name:'PC',url:'http://192.168.0.2:4317'}]);
+ const settings=normalizeSettings({version:5,enabledScreens:['clock'],city:null,devices:[{name:'PC',url:'http://192.168.0.2:4317/'},{name:'bad',url:'javascript:alert(1)'},{name:'bad2',url:'http://user:pass@example.com'}]});
+ assert.deepEqual(settings.enabledScreens,['overview']);assert.equal(settings.city,null);assert.deepEqual(settings.devices,[{name:'PC',url:'http://192.168.0.2:4317'}]);
 });
 test('private APIs reject unpaired devices and cross-origin writes, paired settings reveal no secrets',async t=>{
  const s=store({calendar:{url:'https://calendar.yandex.ru/private-test'},home:{provider:'yandex',token:'test-only-secret'}}),calls=[];
@@ -82,7 +82,7 @@ test('calendar handles Moscow recurrence, EXDATE, overrides, cancellation and al
  assert.equal(events[0].start,'2026-11-17T07:00:00.000Z');
  assert.equal(events[1].title,'Moved');assert.equal(events[1].start,'2026-11-19T09:00:00.000Z');
  assert.equal(events[2].allDay,true);
- assert.deepEqual(Object.keys(events[0]).sort(),['allDay','end','id','start','title']);
+ assert.deepEqual(Object.keys(events[0]).sort(),['allDay','end','id','joinURL','start','title']);
 });
 test('calendar fetch failures do not appear as an empty connected agenda',async()=>{
  const s=store();const calendar=new Calendar(s,async()=>{throw Error('private url should not leak');});

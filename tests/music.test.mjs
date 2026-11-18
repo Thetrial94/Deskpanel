@@ -9,7 +9,7 @@ async function setup(t){
   command:async (command,value)=>{commands.push(command);values.push(value);return {accepted:true,error:null};},
   close:()=>{}
  };
- const server=createAppServer({music});
+ const server=createAppServer({music,network:{handle:async()=>false,target:async()=>({id:'local'})}});
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  t.after(()=>new Promise(resolve=>server.close(resolve)));
  const base='http://127.0.0.1:'+server.address().port;
@@ -54,7 +54,7 @@ test('music rejects malformed, oversized and arbitrary commands without executin
 });
 test('a rejected native command does not become a successful action',async t=>{
  const music={status:async()=>({connection:'stopped'}),command:async()=>({accepted:false,error:'stopped'}),close:()=>{}};
- const server=createAppServer({music});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const server=createAppServer({music,network:{handle:async()=>false,target:async()=>({id:'local'})}});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  t.after(()=>new Promise(resolve=>server.close(resolve)));
  const base='http://127.0.0.1:'+server.address().port;
  const response=await fetch(base+'/api/music',{method:'POST',headers:{Origin:base,'Content-Type':'application/json','X-DeskPanel':'1'},body:'{"command":"toggle"}'});

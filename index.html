@@ -25,6 +25,7 @@
         <button id="settings-open" class="icon-button" aria-label="Настройки" title="Настройки"></button>
       </div>
     </header>
+    <div id="connection-notice" class="connection-notice" role="status" aria-live="polite" hidden><span></span><button id="connection-retry" class="text-button" type="button">Повторить</button></div>
     <main id="stage" class="stage" tabindex="0" aria-label="Экраны панели"></main>
     <footer class="bottom">
       <div class="screen-meta"><span id="screen-counter">01 / 07</span><span id="rotation-state">Автосмена · 20 сек</span></div>
@@ -38,6 +39,7 @@
     <div class="settings-body">
       <section class="settings-section">
         <h3>Ритм</h3>
+        <label class="setting-row" for="setting-smart"><span>Умные переходы<small>Встречи и вопросы агентов · один переход на событие</small></span><input id="setting-smart" type="checkbox" role="switch"></label>
         <label class="setting-row" for="setting-auto"><span>Менять экраны автоматически<small>Свайп и стрелки работают всегда</small></span><input id="setting-auto" type="checkbox" role="switch"></label>
         <label class="setting-row" for="setting-interval"><span>Время на одном экране</span><select id="setting-interval"><option value="10">10 секунд</option><option value="20">20 секунд</option><option value="30">30 секунд</option><option value="60">1 минута</option><option value="120">2 минуты</option></select></label>
         <label class="setting-row" for="setting-resume"><span>Пауза после касания</span><select id="setting-resume"><option value="15">15 секунд</option><option value="30">30 секунд</option><option value="60">1 минута</option><option value="120">2 минуты</option></select></label>
@@ -47,6 +49,11 @@
         <h3>Отображение</h3>
         <label class="setting-row" for="setting-seconds"><span>Секунды на часах</span><input id="setting-seconds" type="checkbox" role="switch"></label>
         <label class="setting-row" for="setting-night"><span>Приглушать ночью<small>С 22:00 до 07:00 по времени телефона</small></span><input id="setting-night" type="checkbox" role="switch"></label>
+        <label class="setting-row" for="setting-evening"><span>Вечерний режим<small>Приглушённые часы, без автосмены и рабочих уведомлений</small></span><input id="setting-evening" type="checkbox" role="switch"></label>
+        <label class="setting-row" for="setting-evening-start"><span>Начало · время телефона</span><select id="setting-evening-start"><option value="0">00:00</option><option value="1">01:00</option><option value="2">02:00</option><option value="3">03:00</option><option value="4">04:00</option><option value="5">05:00</option><option value="6">06:00</option><option value="7">07:00</option><option value="8">08:00</option><option value="9">09:00</option><option value="10">10:00</option><option value="11">11:00</option><option value="12">12:00</option><option value="13">13:00</option><option value="14">14:00</option><option value="15">15:00</option><option value="16">16:00</option><option value="17">17:00</option><option value="18">18:00</option><option value="19">19:00</option><option value="20">20:00</option><option value="21">21:00</option><option value="22">22:00</option><option value="23">23:00</option></select></label>
+        <label class="setting-row" for="setting-evening-end"><span>Окончание</span><select id="setting-evening-end"><option value="0">00:00</option><option value="1">01:00</option><option value="2">02:00</option><option value="3">03:00</option><option value="4">04:00</option><option value="5">05:00</option><option value="6">06:00</option><option value="7">07:00</option><option value="8">08:00</option><option value="9">09:00</option><option value="10">10:00</option><option value="11">11:00</option><option value="12">12:00</option><option value="13">13:00</option><option value="14">14:00</option><option value="15">15:00</option><option value="16">16:00</option><option value="17">17:00</option><option value="18">18:00</option><option value="19">19:00</option><option value="20">20:00</option><option value="21">21:00</option><option value="22">22:00</option><option value="23">23:00</option></select></label>
+        <label class="setting-row" for="setting-evening-start"><span>Вечерний режим с</span><select id="setting-evening-start"><option value="0">00:00</option><option value="1">01:00</option><option value="2">02:00</option><option value="3">03:00</option><option value="4">04:00</option><option value="5">05:00</option><option value="6">06:00</option><option value="7">07:00</option><option value="8">08:00</option><option value="9">09:00</option><option value="10">10:00</option><option value="11">11:00</option><option value="12">12:00</option><option value="13">13:00</option><option value="14">14:00</option><option value="15">15:00</option><option value="16">16:00</option><option value="17">17:00</option><option value="18">18:00</option><option value="19">19:00</option><option value="20">20:00</option><option value="21">21:00</option><option value="22">22:00</option><option value="23">23:00</option></select></label>
+        <label class="setting-row" for="setting-evening-end"><span>До · по времени телефона</span><select id="setting-evening-end"><option value="0">00:00</option><option value="1">01:00</option><option value="2">02:00</option><option value="3">03:00</option><option value="4">04:00</option><option value="5">05:00</option><option value="6">06:00</option><option value="7">07:00</option><option value="8">08:00</option><option value="9">09:00</option><option value="10">10:00</option><option value="11">11:00</option><option value="12">12:00</option><option value="13">13:00</option><option value="14">14:00</option><option value="15">15:00</option><option value="16">16:00</option><option value="17">17:00</option><option value="18">18:00</option><option value="19">19:00</option><option value="20">20:00</option><option value="21">21:00</option><option value="22">22:00</option><option value="23">23:00</option></select></label>
         <button id="wake-lock" class="button button-soft full-width">Не выключать экран</button>
         <p class="settings-note" id="wake-note">На телефоне также можно включить удержание экрана в киоск-браузере.</p>
       </section>
@@ -65,6 +72,8 @@
   </dialog>
   <div class="agent-question-notice" role="status" aria-live="polite"><button id="agent-question" class="button" hidden></button></div>
   <button id="break-reminder" class="button button-primary break-reminder" hidden></button>
+  <section id="timer-notice" class="timer-notice card" role="alert" aria-label="Таймер завершён" hidden><strong>Время вышло</strong><span>00:00</span><div><button id="timer-dismiss" class="button button-soft">Закрыть</button><button id="timer-extend" class="button button-primary">Ещё 5 минут</button></div></section>
+  <dialog id="timer-notice" class="timer-notice" aria-labelledby="timer-notice-title"><strong id="timer-notice-title">Время вышло</strong><span aria-hidden="true">00:00</span><div><button id="timer-dismiss" class="button button-soft">Закрыть</button><button id="timer-extend" class="button button-primary">Ещё 5 минут</button></div></dialog>
   <div id="toast" class="toast" role="status"></div>
   <noscript>Для работы панели включи JavaScript в браузере.</noscript>
 </body>

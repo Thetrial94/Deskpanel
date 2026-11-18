@@ -1,5 +1,9 @@
-import { loadSettings, normalizeSettings, saveSettings } from './core/settings.js';
+import {ComputerSources} from './data/computers.js';
+import { ServerConnection } from './core/connection.js';
+import { loadSettings, normalizeSettings, saveSettings,resolveScreenId } from './core/settings.js';
 import { RotationClock, swipeDirection } from './core/rotation.js';
+import { QuickTimer } from './core/timer.js';
+import { SmartTransitions,isEvening,approachingMeeting } from './core/context.js';
 import { FocusTimer } from './core/focus.js';
 import { formatDate, escapeHTML } from './core/dom.js';
 import { icon } from './ui/icons.js';
@@ -10,23 +14,25 @@ import { AgentSource } from './data/agents.js';
 import { BreakTimer } from './core/breaks.js';
 import { FeatureSource } from './data/features.js';
 import { setupConnections } from './ui/connections.js';
-import { MusicSource } from './data/music.js';
 
 let storage;
 try { storage = window.localStorage; } catch { storage = {getItem:()=>null,setItem:()=>{throw new Error('unavailable');}}; }
 let settings = loadSettings(storage);
-const focus = new FocusTimer(storage), weather = new WeatherSource(), agents = new AgentSource(), music = new MusicSource();
-const breaks = new BreakTimer(storage), computer = new FeatureSource('/api/computer',3000), remote = new FeatureSource('/api/remote'), calendar = new FeatureSource('/api/calendar',60000), home = new FeatureSource('/api/home',10000);
+const timer = new QuickTimer(storage),smart = new SmartTransitions(storage);
+const computers=new ComputerSources(storage);
+const focus = new FocusTimer(storage), weather = new WeatherSource(), agents = new AgentSource(), music = computers.source('music');
+const breaks = new BreakTimer(storage), computer = computers.source('computer',3000), remote = computers.source('remote'), calendar = new FeatureSource('/api/calendar',60000), home = new FeatureSource('/api/home',10000);
 const stage = document.querySelector('#stage'), nav = document.querySelector('#screen-nav'), dialog = document.querySelector('#settings-dialog');
 const rotation = new RotationClock(settings.interval*1000,performance.now());
-let activeId = settings.enabledScreens.includes(location.hash.slice(1)) ? location.hash.slice(1) : settings.screenOrder.find(id=>settings.enabledScreens.includes(id));
+const requestedScreen=resolveScreenId(location.hash.slice(1));
+let activeId = settings.enabledScreens.includes(requestedScreen) ? requestedScreen : settings.screenOrder.find(id=>settings.enabledScreens.includes(id));
 let cleanup = () => {}, transitionTimer, toastTimer, lastStatus = '', pointer = null, wakeLock = null, wakeWanted = false, cityRequest = null;
-const context = {settings:()=>settings,focus,weather,agents,music,breaks,computer,remote,calendar,home};
+const context = {settings:()=>settings,focus,weather,agents,music,breaks,computer,computers,remote,calendar,home,timer,navigate:id=>navigate(id),meetingId:null,timeMode:['focus','breaks'].includes(location.hash.slice(1))?location.hash.slice(1):null};
 const enabled = () => settings.screenOrder.filter(id=>settings.enabledScreens.includes(id));
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 function toast(message) { clearTimeout(toastTimer); const node = document.querySelector('#toast'); node.textContent = message; node.classList.add('visible'); toastTimer = setTimeout(()=>node.classList.remove('visible'),3600); }
 function renderNav() {
-  const ids = enabled();
+  const ids = activeId==='meeting'?[...enabled(),'meeting']:enabled();
   nav.innerHTML = ids.map(id => '<button class="nav-item '+(id===activeId?'active':'')+'" data-screen="'+id+'" aria-label="'+screenById.get(id).title+'" '+(id===activeId?'aria-current="page"':'')+'>'+icon(screenById.get(id).icon)+'<span>'+screenById.get(id).title+'</span><i></i></button>').join('');
   nav.querySelector('.active')?.scrollIntoView({block:'nearest',inline:'nearest'});
   document.querySelector('#screen-counter').textContent = String(ids.indexOf(activeId)+1).padStart(2,'0')+' / '+String(ids.length).padStart(2,'0');
@@ -45,20 +51,25 @@ function mountActive(direction = 0) {
   }
   history.replaceState(null,'','#'+activeId); renderNav();
 }
-function interact() { rotation.interact(performance.now(),settings.resumeAfter*1000); }
+function interact() { rotation.interact(performance.now(),settings.resumeAfter*1000);smart.holdUntil=0; }
+document.addEventListener('pointerdown',interact,{passive:true});
 function go(id, manual = true, direction = 1) {
-  if (!enabled().includes(id)) { if (manual) toast('Этот экран скрыт. Включи его в настройках.'); return; }
+  if (!enabled().includes(id)&&!['meeting'].includes(id)) { if (manual) toast('Этот экран скрыт. Включи его в настройках.'); return; }
   if (manual) interact(); else rotation.reset(performance.now());
   if (activeId !== id) { activeId = id; mountActive(direction); }
 }
+function navigate(id,manual=true){
+ if(!enabled().includes(id)&&id!=='meeting'){settings.enabledScreens.push(id);persist();}
+ go(id,manual);
+}
 function step(direction, manual = true) {
   const ids = enabled(), index = ids.indexOf(activeId);
-  go(ids[(index+direction+ids.length)%ids.length],manual,direction);
+  go(ids[index<0?(direction>0?0:ids.length-1):(index+direction+ids.length)%ids.length],manual,direction);
 }
 function persist() {
   settings = normalizeSettings(settings);
   if (!saveSettings(storage,settings)) toast('Браузер не дает сохранить настройки. Они действуют до закрытия страницы.');
-  if (!enabled().includes(activeId)) { activeId = enabled()[0]; mountActive(); }
+  if (!enabled().includes(activeId)&&activeId!=='meeting') { activeId = enabled()[0]; mountActive(); }
   rotation.configure(settings.interval*1000,performance.now()); renderNav(); updateRotationButton(); updateDim();
 }
 function updateRotationButton() {
@@ -68,7 +79,7 @@ function updateRotationButton() {
   button.setAttribute('aria-label',label); button.title = label; button.setAttribute('aria-pressed',String(!settings.autoRotate));
 }
 function toggleRotation() { settings.autoRotate = !settings.autoRotate; rotation.resumeAt = 0; persist(); }
-function updateDim() { const hour = new Date().getHours(); document.documentElement.classList.toggle('night-dim',settings.dimAtNight && (hour >= 22 || hour < 7)); }
+function updateDim() { const hour = new Date().getHours(),quiet=isEvening(settings);document.documentElement.classList.toggle('night-dim',quiet||settings.dimAtNight&&(hour>=22||hour<7));document.documentElement.classList.toggle('evening-mode',quiet); }
 function renderScreenSettings() {
   document.querySelector('#screen-settings').innerHTML = settings.screenOrder.map((id,index) => {
     const on = settings.enabledScreens.includes(id), last = on && settings.enabledScreens.length===1;
@@ -80,18 +91,21 @@ function renderCity() {
   document.querySelector('#city-clear').hidden = !settings.city;
 }
 function openSettings() {
-  for (const [selector,key] of [['auto','autoRotate'],['seconds','showSeconds'],['night','dimAtNight']]) document.querySelector('#setting-'+selector).checked = settings[key];
+  for (const [selector,key] of [['auto','autoRotate'],['seconds','showSeconds'],['night','dimAtNight'],['smart','smartTransitions'],['evening','eveningMode']]) document.querySelector('#setting-'+selector).checked = settings[key];
   document.querySelector('#setting-interval').value = String(settings.interval);
   document.querySelector('#setting-resume').value = String(settings.resumeAfter);
+  document.querySelector('#setting-evening-start').value=settings.eveningStart;document.querySelector('#setting-evening-end').value=settings.eveningEnd;
   renderScreenSettings(); renderCity(); dialog.showModal(); connections.open();
 }
-const connections = setupConnections(document.querySelector('#connections-settings'),{settings:()=>settings,saveDevices:devices=>{settings.devices=devices;persist();if(activeId==='computer')mountActive();},changed:()=>{calendar.refresh();home.refresh();remote.refresh();}});
+const connections = setupConnections(document.querySelector('#connections-settings'),{settings:()=>settings,saveDevices:devices=>{settings.devices=devices;persist();if(activeId==='computer')mountActive();},changed:()=>{computers.refresh(true);agents.refresh(true);calendar.refresh();home.refresh();remote.refresh();music.refresh(true);}});
 function closeSettings() { dialog.close(); interact(); }
 document.querySelector('#settings-open').addEventListener('click',openSettings);
 for (const id of ['settings-close','settings-done']) document.querySelector('#'+id).addEventListener('click',closeSettings);
 dialog.addEventListener('close',()=>{connections.close();interact();});
 dialog.addEventListener('click',e=>{ if (e.target===dialog && e.clientX < dialog.getBoundingClientRect().left) closeSettings(); });
-for (const [selector,key] of [['auto','autoRotate'],['seconds','showSeconds'],['night','dimAtNight']]) document.querySelector('#setting-'+selector).addEventListener('change',e=>{settings[key]=e.target.checked;persist();});
+for (const [selector,key] of [['auto','autoRotate'],['seconds','showSeconds'],['night','dimAtNight'],['smart','smartTransitions'],['evening','eveningMode']]) document.querySelector('#setting-'+selector).addEventListener('change',e=>{settings[key]=e.target.checked;persist();});
+for(const [selector,key] of [['start','eveningStart'],['end','eveningEnd']])document.querySelector('#setting-evening-'+selector).addEventListener('change',e=>{settings[key]=Number(e.target.value);persist();});
+
 document.querySelector('#setting-interval').addEventListener('change',e=>{settings.interval=Number(e.target.value);persist();});
 document.querySelector('#setting-resume').addEventListener('change',e=>{settings.resumeAfter=Number(e.target.value);persist();});
 document.querySelector('#screen-settings').addEventListener('change',e=>{
@@ -111,7 +125,8 @@ document.querySelector('.brand').addEventListener('click',e=>{e.preventDefault()
 stage.addEventListener('click',e=>{
   if(e.target.closest('[data-settings]'))openSettings();
   const hide=e.target.closest('[data-hide-screen]');if(hide&&settings.enabledScreens.length>1){settings.enabledScreens=settings.enabledScreens.filter(id=>id!==hide.dataset.hideScreen);persist();return;}
-  const link=e.target.closest('[data-go]');if(link)go(link.dataset.go);
+  const meeting=e.target.closest('[data-meeting]');if(meeting){context.meetingId=meeting.dataset.meeting;navigate('meeting');return;}
+  const link=e.target.closest('[data-go]');if(link)navigate(link.dataset.go);
 });
 stage.addEventListener('pointerdown',e=>{
   interact();
@@ -163,7 +178,7 @@ document.querySelector('#wake-lock').addEventListener('click',async()=>{
 });
 document.addEventListener('visibilitychange',()=>{
   rotation.reset(performance.now());
-  if(!document.hidden){agents.refresh();weather.refresh();if(wakeWanted&&!wakeLock)requestWake();}
+  if(!document.hidden){serverConnection.check();refreshSources();if(wakeWanted&&!wakeLock)requestWake();}
 });
 document.querySelector('#city-form').addEventListener('submit',async e=>{
   e.preventDefault();const query=document.querySelector('#city-search').value.trim(),results=document.querySelector('#city-results');
@@ -194,30 +209,54 @@ function updateDate(){document.querySelector('#top-date').textContent=formatDate
 updateDate();setInterval(updateDate,30000);
 mountActive();updateRotationButton();weather.setCity(settings.city);agents.refresh();
 setInterval(()=>{if(!document.hidden)agents.refresh();},3000);setInterval(()=>weather.refresh(),60000);
+// Recover data in place: keep the active screen, local timers and unsent forms.
+function refreshSources(){agents.refresh(true);weather.refresh(true);for(const source of [computers,music,computer,remote,calendar,home])source.refresh(true);if(dialog.open)connections.refresh();}
+const connectionNotice=document.querySelector('#connection-notice');let recoveredTimer,connectionWasOffline=false;
+const serverConnection=new ServerConnection({onRecover:refreshSources});
+serverConnection.subscribe(state=>{
+ const down=state.status==='offline';
+ document.documentElement.classList.toggle('server-offline',down);
+ if(down){clearTimeout(recoveredTimer);connectionWasOffline=true;connectionNotice.hidden=false;connectionNotice.classList.remove('recovered');connectionNotice.querySelector('span').textContent=state.reason==='network'?'Нет Wi-Fi · ждём подключения':'Хаб недоступен · подключаемся снова';connectionNotice.querySelector('button').hidden=false;}
+ else if(state.status==='connected'&&connectionWasOffline){clearTimeout(recoveredTimer);connectionWasOffline=false;connectionNotice.hidden=false;connectionNotice.classList.add('recovered');connectionNotice.querySelector('span').textContent='Связь восстановлена';connectionNotice.querySelector('button').hidden=true;recoveredTimer=setTimeout(()=>connectionNotice.hidden=true,3500);}
+});
+document.querySelector('#connection-retry').addEventListener('click',()=>serverConnection.check());
+window.addEventListener('offline',()=>serverConnection.setOnline(false));window.addEventListener('online',()=>serverConnection.setOnline(true));
+serverConnection.online=navigator.onLine!==false;serverConnection.start();if(!serverConnection.online)serverConnection.setOnline(false);
 const questionNotice=document.querySelector('#agent-question');
 let noticeProvider=null;
 questionNotice.addEventListener('click',()=>{if(!noticeProvider)return;if(!enabled().includes(noticeProvider)){settings.enabledScreens.push(noticeProvider);persist();}go(noticeProvider);});
 function updateQuestionNotice(){
  const notice=attentionNotice(agents.snapshot);noticeProvider=notice?.provider;
- questionNotice.hidden=!notice||activeId===noticeProvider;
+ questionNotice.hidden=isEvening(settings)||!notice||activeId===noticeProvider;
  const label=notice?.label||'';
  if(questionNotice.textContent!==label)questionNotice.textContent=label;
  document.documentElement.classList.toggle('has-agent-question',!questionNotice.hidden);
 }
 agents.subscribe(updateQuestionNotice);
+// Keep the calendar current for context and meeting alerts on every screen.
+calendar.subscribe(()=>{});
+const timerNotice=document.querySelector('#timer-notice');
+timerNotice.addEventListener('cancel',()=>timer.dismiss());
+document.querySelector('#timer-dismiss').addEventListener('click',()=>{timer.dismiss();timerNotice.close();});
+document.querySelector('#timer-extend').addEventListener('click',()=>{timer.extend();timerNotice.close();context.timeMode='timer';navigate('timers');});
 const breakReminder=document.querySelector('#break-reminder');
-breakReminder.addEventListener('click',()=>{if(!enabled().includes('breaks')){settings.enabledScreens.push('breaks');persist();}go('breaks');});
+breakReminder.addEventListener('click',()=>{context.timeMode='breaks';navigate('timers');});
 setInterval(()=>{
+ timer.tick();if(timer.notice&&!timerNotice.open)timerNotice.showModal();else if(!timer.notice&&timerNotice.open)timerNotice.close();
  if(focus.tick())toast('Время фокуса закончилось. Можно отдохнуть.');
  breaks.tick();updateQuestionNotice();
- breakReminder.hidden=!breaks.due||activeId==='breaks';
+ breakReminder.hidden=isEvening(settings)||!breaks.due||activeId==='timers'&&context.timeMode==='breaks';
  breakReminder.textContent=breaks.phase==='work'?'Пора отдохнуть →':'Перерыв завершён →';
+ const quiet=isEvening(settings),wall=Date.now(),blocked=serverConnection.state.status!=='connected'||document.hidden||dialog.open||timer.notice||!!stage.querySelector('.action-confirm')||performance.now()<rotation.resumeAt;
+ const transition=smart.next({calendar:calendar.snapshot,agents:agents.snapshot,quiet,enabled:settings.smartTransitions,allow:settings.autoRotate,blocked,now:wall});
+ if(transition){if(transition.target==='meeting')context.meetingId=approachingMeeting(calendar.snapshot,wall)?.id;navigate(transition.target,false);}
+ updateDim();
 },250);
 function frame(now){
-  const ids=enabled(),blocked=!settings.autoRotate||dialog.open||!!stage.querySelector('.action-confirm')||document.hidden||ids.length<2;
+  const ids=enabled(),blocked=isEvening(settings)||Date.now()<smart.holdUntil||timer.notice||!settings.autoRotate||dialog.open||!!stage.querySelector('.action-confirm')||document.hidden||ids.length<2;
   if(rotation.tick(now,blocked))step(1,false);
   const holding=now<rotation.resumeAt;
-  const label=ids.length<2?'Один экран':!settings.autoRotate?'Автосмена на паузе':holding?'После касания · '+Math.ceil((rotation.resumeAt-now)/1000)+' сек':'Автосмена · '+settings.interval+' сек';
+  const label=isEvening(settings)?'Вечерний режим':Date.now()<smart.holdUntil?'Важное событие':ids.length<2?'Один экран':!settings.autoRotate?'Автосмена на паузе':holding?'После касания · '+Math.ceil((rotation.resumeAt-now)/1000)+' сек':'Автосмена · '+settings.interval+' сек';
   if(label!==lastStatus){document.querySelector('#rotation-state').textContent=label;lastStatus=label;}
   document.querySelector('#rotation-progress').style.transform='scaleX('+(blocked||holding?0:rotation.progress(now))+')';
   requestAnimationFrame(frame);

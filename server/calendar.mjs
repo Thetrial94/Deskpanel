@@ -29,12 +29,22 @@ export async function fetchCalendar(url,fetcher=fetch){
  throw Error('calendar_redirect_failed');
 }
 export class Calendar {
- constructor(store,fetcher=fetch){this.store=store;this.fetcher=fetcher;this.cache=null;this.pending=null;}
+ constructor(store,fetcher=fetch){this.store=store;this.fetcher=fetcher;this.cache=null;this.pending=null;this.opening=false;this.openedAt=0;}
  clear(){this.cache=null;}
+ publicStatus(result){return {...result,events:result.events.map(({joinURL,...event})=>({...event,canOpen:!!joinURL}))};}
+ async open(id,opener){
+  if(typeof id!=='string'||id.length>300)throw Error('invalid_meeting');
+  if(this.opening||Date.now()-this.openedAt<2000)throw Error('busy');
+  this.opening=true;
+  try{const state=await this.status();const event=state.connection==='connected'?this.cache?.result.events.find(e=>e.id===id):null;
+   if(!event?.joinURL||Date.parse(event.end)<=Date.now())throw Error('invalid_meeting');
+   const result=await opener(event.joinURL);if(result.accepted)this.openedAt=Date.now();return result;
+  }finally{this.opening=false;}
+ }
  async status(){
   const config=(await this.store.get()).calendar;
   if(!config)return {connection:'not_configured',events:[]};
-  if(this.cache?.url===config.url&&Date.now()-this.cache.at<300000)return this.cache.result;
+  if(this.cache?.url===config.url&&Date.now()-this.cache.at<300000)return this.publicStatus(this.cache.result);
   if(this.pending)return this.pending;
   this.pending=(async()=>{
    try {
@@ -44,7 +54,7 @@ export class Calendar {
     while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>1048576){await reader.cancel();throw Error('calendar_too_large');}chunks.push(value);}
     const text=Buffer.concat(chunks).toString('utf8');if(!text.includes('BEGIN:VCALENDAR'))throw Error('invalid_calendar');
     const result={connection:'connected',events:await parseCalendar(text),updatedAt:new Date().toISOString()};
-    this.cache={url:config.url,at:Date.now(),result};return result;
+    this.cache={url:config.url,at:Date.now(),result};return this.publicStatus(result);
    }catch{return {connection:'unavailable',events:[],updatedAt:null};}
    finally{this.pending=null;}
   })();return this.pending;

@@ -14,9 +14,10 @@ export default {
    if(!state)return;
    if(state.connection!=='connected'){tabs.innerHTML='';emptyState(body,state,'умный дом');lastMarkup='';return;}
    root.querySelector('[data-home-provider]').textContent=state.provider==='ha'?'HOME ASSISTANT':'ЯНДЕКС / АЛИСА';
-   const rooms=homeRooms(state.devices),houses=new Set(state.devices.map(d=>d.household?.id||''));
+   const devices=state.provider==='yandex'?state.devices.filter(d=>d.household?.name?.trim().toLocaleLowerCase('ru')==='квартира'):state.devices;
+   const rooms=homeRooms(devices),houses=new Set(devices.map(d=>d.household?.id||''));
    if(selectedRoom!=='all'&&!rooms.some(r=>r.id===selectedRoom))selectedRoom='all';
-   root.querySelector('[data-home-summary]').textContent='Комнат: '+rooms.length+' · устройств: '+state.devices.length+' · включено '+state.devices.filter(d=>d.on===true).length;
+   root.querySelector('[data-home-summary]').textContent='Комнат: '+rooms.length+' · устройств: '+devices.length+' · включено '+devices.filter(d=>d.on===true).length;
    const tabMarkup=[{id:'all',name:'Все комнаты'},...rooms].map(r=>'<button class="room-tab '+(selectedRoom===r.id?'selected':'')+'" data-room="'+esc(r.id)+'" aria-pressed="'+(selectedRoom===r.id)+'">'+esc(r.name)+(r.id!=='all'&&houses.size>1?' <small>'+esc(r.house)+'</small>':'')+'</button>').join('');if(tabs.innerHTML!==tabMarkup)tabs.innerHTML=tabMarkup;
    const card=d=>'<article class="card home-device '+(d.on===true?'device-on':'')+'"><div class="home-device-top"><span>'+esc(deviceType(d))+'</span>'+icon(d.controllable?'sun':'services')+'</div><h3>'+esc(d.name)+'</h3><p class="muted">'+esc(deviceState(d))+'</p>'+(d.controllable?'<button class="button button-soft" data-home-device="'+esc(d.id)+'" '+(pending?'disabled':'')+'>'+ (d.on===true?'Выключить':'Включить')+'</button>':'<span class="read-only-device">'+(d.kind?.includes('button')?'Последнее событие':'Только просмотр')+'</span>')+'</article>';
    const markup=rooms.filter(r=>selectedRoom==='all'||r.id===selectedRoom).map(r=>{
