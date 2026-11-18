@@ -9,7 +9,7 @@ export function createAgentScreen(id,name){return {
   const refreshAges=()=>root.querySelectorAll('[data-session-age]').forEach(node=>{const s=current.find(s=>s.id===node.dataset.sessionAge);if(s)node.textContent=statusAge(s);});
   const unsubscribe=ctx.agents.subscribe(snapshot=>{
    const state=snapshot[id],body=root.querySelector('[data-agent-body]');current=state.sessions;
-   root.querySelector('[data-connection]').textContent=agentConnection[state.connection]||'Нет связи';
+   root.querySelector('[data-connection]').textContent=(state.source?.name?state.source.name+' · ':'')+(agentConnection[state.connection]||'Нет связи');
    root.querySelector('[data-summary]').textContent=state.connection==='connected'?agentSummary(current):'';
    if(state.connection!=='connected'){
     const note=state.connection==='pair_required'?'Введи код с компьютера в настройках панели.':state.connection==='awaiting_events'?'Открой Codex и отправь сообщение в чат. Если статус не появится, проверь подключение на компьютере.':state.connection==='disconnected'?'Проверь компьютер и подключение к панели.':id==='codex'?'Установи мост событий Codex на компьютере.':'Интеграция Claude пока не настроена.';

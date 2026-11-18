@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import {createAppServer} from '../server/index.mjs';
 test('server exposes only public assets and read-only, unconfigured adapters',async t=>{
- const server=createAppServer({agentReader:async()=>({schemaVersion:1,providers:['codex','claude'].map(id=>({id,name:id,connection:'not_configured',sessions:[],updatedAt:null}))})});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const server=createAppServer({network:{handle:async()=>false,agents:reader=>reader()},agentReader:async()=>({schemaVersion:1,providers:['codex','claude'].map(id=>({id,name:id,connection:'not_configured',sessions:[],updatedAt:null}))})});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  t.after(()=>new Promise(resolve=>server.close(resolve)));
  const base='http://127.0.0.1:'+server.address().port;
  assert.equal((await fetch(base+'/')).status,200);

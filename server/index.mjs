@@ -1,5 +1,6 @@
+import {Network} from './network.mjs';
 import {Weather} from './weather.mjs';
-import {checkRequest} from './http-guard.mjs';
+import {checkRequest,readJSON} from './http-guard.mjs';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { resolve, dirname, extname, sep } from 'node:path';
@@ -11,14 +12,14 @@ import { MusicBridge } from './music.mjs';
 import { handleMusic } from './music-http.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.json':'application/json; charset=utf-8'};
-export function createAppServer({music=new MusicBridge(),features=new Features(),agentReader=readAgentSnapshot,weather=new Weather()}={}) {
+export function createAppServer({music=new MusicBridge(),features=new Features(),agentReader=readAgentSnapshot,weather=new Weather(),network=new Network(features.store)}={}) {
   const server = createServer(async (req, res) => {
     const send = (status, body, type = 'application/json; charset=utf-8') => {
       res.writeHead(status, {'Content-Type':type,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'});
       res.end(req.method === 'HEAD' ? undefined : body);
     };
     try {
-      const path = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+      let path = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
       if(['/api/weather','/api/cities'].includes(path)){
        if(!['GET','HEAD'].includes(req.method)){send(405,'{"error":"method_not_allowed"}');return;}
        if(!checkRequest(req)){send(403,'{"error":"invalid_origin"}');return;}
@@ -26,11 +27,23 @@ export function createAppServer({music=new MusicBridge(),features=new Features()
        try{const data=path==='/api/weather'?await weather.get(params.get('latitude'),params.get('longitude')):await weather.search(params.get('q'));send(200,JSON.stringify(data));}
        catch{send(503,'{"error":"weather_unavailable"}');}return;
       }
+      const routed=await network.handle(path,req,send,features);
+      if(routed?.localPath)path=routed.localPath;else if(routed)return;
       if(await features.handle(path,req,res,send))return;
-      if(path === '/api/music'){await handleMusic(req,send,music);return;}
+      if(path === '/api/music'||path === '/api/music/local'){
+       if(path.endsWith('/local')&&(!checkRequest(req,req.method==='POST')||!await features.access.authorized(req))){send(403,'{"error":"pair_required"}');return;}
+       const target=path.endsWith('/local')||routed?.localPath?{id:'local'}:await network.target('music');
+       if(!target||target.id!=='local'){
+        if(!checkRequest(req,req.method==='POST')||!await features.access.authorized(req)){send(403,'{"error":"pair_required"}');return;}
+        if(!['GET','HEAD','POST'].includes(req.method)){send(405,'{"error":"method_not_allowed"}');return;}
+        if(!target){send(503,'{"error":"node_not_found"}');return;}
+        try{const r=await network.request(target,'music',req.method==='POST'?await readJSON(req):undefined);send(r.status,JSON.stringify(r.data));}catch{send(503,'{"error":"node_unavailable"}');}return;
+       }
+       await handleMusic(req,send,music);return;
+      }
       if (!['GET','HEAD'].includes(req.method)) { res.setHeader('Allow','GET, HEAD'); send(405, '{"error":"method_not_allowed"}'); return; }
-      if (path === '/api/health') { send(200, JSON.stringify({ok:true,app:'deskpanel',version:'0.1.0'})); return; }
-      if (path === '/api/agents') { if(!checkRequest(req)||!await features.access.authorized(req)){send(403,JSON.stringify({error:'pair_required'}));return;}send(200, JSON.stringify(await agentReader())); return; }
+      if (path === '/api/health') { send(200, JSON.stringify({ok:true,app:'deskpanel',version:'0.1.0',capabilities:['nodes-v1']})); return; }
+      if (path === '/api/agents'||path === '/api/agents/local') { if(!checkRequest(req)||!await features.access.authorized(req)){send(403,JSON.stringify({error:'pair_required'}));return;}send(200, JSON.stringify(path.endsWith('/local')?await agentReader():await network.agents(agentReader))); return; }
       if (path !== '/' && path !== '/index.html' && !path.startsWith('/src/') && !path.startsWith('/public/')) { send(404, '{"error":"not_found"}'); return; }
       if (path.includes('\\') || path.includes('\0') || path.split('/').includes('..')) { send(400, '{"error":"invalid_path"}'); return; }
       const file = resolve(root, path === '/' ? 'index.html' : path.slice(1));

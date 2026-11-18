@@ -1,3 +1,4 @@
+import {computerPicker} from '../ui/computer-picker.js';
 import { icon } from '../ui/icons.js';
 const states={
  loading:['Подключаем пульт…','Проверяем плеер на компьютере.'],
@@ -13,7 +14,8 @@ const states={
 export default {
  id:'music',title:'Музыка',icon:'music',accent:'gold',
  mount(root,ctx){
-  root.innerHTML='<section class="music-layout"><div class="music-player"><span class="eyebrow">ЯНДЕКС МУЗЫКА</span><h1 data-music-title>Яндекс Музыка</h1><div class="music-connection"><i data-music-dot></i><span data-music-state></span></div><p class="music-description muted" data-music-description></p><div class="music-controls"><button class="music-skip" data-command="previous" aria-label="Предыдущий трек">'+icon('previous')+'</button><button class="music-toggle" data-command="toggle" aria-label="Воспроизведение / пауза"></button><button class="music-skip" data-command="next" aria-label="Следующий трек">'+icon('next')+'</button></div><div class="music-volume" data-volume-row hidden><label for="music-volume">'+icon('volume')+'<span>Громкость</span></label><input id="music-volume" type="range" min="0" max="100" step="1" aria-label="Громкость Яндекс Музыки" disabled><output for="music-volume" data-volume-output>—</output></div><button class="button button-primary music-launch" data-command="launch" hidden>Запустить на компьютере</button><p class="music-note muted" data-music-note>Точное состояние и громкость появятся после подключения расширенной версии плеера.</p><p class="music-feedback" data-music-feedback role="status" aria-live="polite"></p></div></section>';
+  root.innerHTML='<section class="music-layout"><div class="music-player"><span class="eyebrow">ЯНДЕКС МУЗЫКА</span><div class="computer-picker music-targets" data-music-picker aria-label="Где играет музыка"></div><h1 data-music-title>Яндекс Музыка</h1><div class="music-connection"><i data-music-dot></i><span data-music-state></span></div><p class="music-description muted" data-music-description></p><div class="music-controls"><button class="music-skip" data-command="previous" aria-label="Предыдущий трек">'+icon('previous')+'</button><button class="music-toggle" data-command="toggle" aria-label="Воспроизведение / пауза"></button><button class="music-skip" data-command="next" aria-label="Следующий трек">'+icon('next')+'</button></div><div class="music-volume" data-volume-row hidden><label for="music-volume">'+icon('volume')+'<span>Громкость</span></label><input id="music-volume" type="range" min="0" max="100" step="1" aria-label="Громкость Яндекс Музыки" disabled><output for="music-volume" data-volume-output>—</output></div><button class="button button-primary music-launch" data-command="launch" hidden>Запустить на компьютере</button><p class="music-note muted" data-music-note>Точное состояние и громкость появятся после подключения расширенной версии плеера.</p><p class="music-feedback" data-music-feedback role="status" aria-live="polite"></p></div></section>';
+  const stopPicker=computerPicker(root.querySelector('[data-music-picker]'),ctx.computers,{music:true,source:ctx.music,onChange:()=>ctx.music.refresh(true)});
   const slider=root.querySelector('#music-volume');
   let volumeEditing=false;
   const handler=e=>{const button=e.target.closest('[data-command]');if(button&&!button.disabled)ctx.music.command(button.dataset.command);};
@@ -48,6 +50,6 @@ export default {
     root.querySelector('[data-music-note]').hidden=!connected||enhanced;
     root.querySelector('[data-music-feedback]').textContent=message;
   });
-  return ()=>{unsubscribe();root.removeEventListener('click',handler);slider.removeEventListener('input',input);slider.removeEventListener('change',change);};
+  return ()=>{unsubscribe();stopPicker();root.removeEventListener('click',handler);slider.removeEventListener('input',input);slider.removeEventListener('change',change);};
  }
 };

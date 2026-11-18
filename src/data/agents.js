@@ -12,7 +12,7 @@ export class AgentSource {
       if (data.schemaVersion !== 1 || !Array.isArray(data.providers)) throw new Error('invalid');
       for (const id of ['codex','claude']) {
         const provider = data.providers.find(p => p.id === id);
-        this.snapshot[id] = provider && ['not_configured','connected','disconnected','awaiting_events'].includes(provider.connection) && Array.isArray(provider.sessions)
+        this.snapshot[id] = provider && ['not_configured','connected','disconnected','awaiting_events','pair_required'].includes(provider.connection) && Array.isArray(provider.sessions)
           ? provider : {connection:'disconnected',sessions:[]};
       }
     } catch { for (const id of ['codex','claude']) this.snapshot[id] = {connection:'disconnected',sessions:[]}; }
