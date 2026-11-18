@@ -11,7 +11,7 @@
     "check": "node scripts/check.mjs"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.13"
   },
   "dependencies": {
     "node-ical": "^0.27.6"
