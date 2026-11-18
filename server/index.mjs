@@ -29,7 +29,7 @@ export function createAppServer({music=new MusicBridge(),features=new Features()
       if(await features.handle(path,req,res,send))return;
       if(path === '/api/music'){await handleMusic(req,send,music);return;}
       if (!['GET','HEAD'].includes(req.method)) { res.setHeader('Allow','GET, HEAD'); send(405, '{"error":"method_not_allowed"}'); return; }
-      if (path === '/api/health') { send(200, JSON.stringify({ok:true,version:'0.1.0'})); return; }
+      if (path === '/api/health') { send(200, JSON.stringify({ok:true,app:'deskpanel',version:'0.1.0'})); return; }
       if (path === '/api/agents') { if(!checkRequest(req)||!await features.access.authorized(req)){send(403,JSON.stringify({error:'pair_required'}));return;}send(200, JSON.stringify(await agentReader())); return; }
       if (path !== '/' && path !== '/index.html' && !path.startsWith('/src/') && !path.startsWith('/public/')) { send(404, '{"error":"not_found"}'); return; }
       if (path.includes('\\') || path.includes('\0') || path.split('/').includes('..')) { send(400, '{"error":"invalid_path"}'); return; }

@@ -20,12 +20,13 @@ export class WeatherSource {
   subscribe(fn) { this.listeners.add(fn); fn(this.state); return () => this.listeners.delete(fn); }
   emit() { for (const fn of this.listeners) fn(this.state); }
   setCity(city) {
-    this.request?.abort(); this.request = null;
+    this.request?.abort(); this.request = null;this.refreshQueued=false;
     this.state = {city,data:null,error:null,loading:false,updatedAt:null}; this.emit();
     if (city) this.refresh();
   }
   async refresh(force = false) {
-    if (!this.state.city || this.state.loading || (!force && this.state.updatedAt && Date.now()-this.state.updatedAt < 600000)) return;
+    if(this.state.loading){this.refreshQueued=this.refreshQueued||force;return;}
+    if (!this.state.city || (!force && this.state.updatedAt && Date.now()-this.state.updatedAt < 600000)) return;
     const city = this.state.city, controller = new AbortController(); this.request = controller;
     this.state.loading = true; this.state.error = null; this.emit();
     const timer = setTimeout(() => controller.abort(), 12000);
@@ -39,6 +40,6 @@ export class WeatherSource {
       if (!Number.isFinite(data.current?.temperature_2m) || !Array.isArray(data.daily?.time)) throw new Error('Неверный ответ сервиса');
       if (this.request === controller) { this.state.data = data; this.state.updatedAt = data.updatedAt||Date.now();this.state.error=data.stale?'Источник недоступен · сохранённый прогноз':null; }
     } catch { if (this.request === controller) this.state.error = 'Нет связи с погодным сервисом'; }
-    finally { clearTimeout(timer); if (this.request === controller) { this.state.loading = false; this.request = null; this.emit(); } }
+    finally { clearTimeout(timer); if (this.request === controller) { this.state.loading = false; this.request = null; this.emit();if(this.refreshQueued){this.refreshQueued=false;this.refresh(true);} } }
   }
 }

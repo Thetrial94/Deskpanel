@@ -1,3 +1,4 @@
+import { ServerConnection } from './core/connection.js';
 import { loadSettings, normalizeSettings, saveSettings,resolveScreenId } from './core/settings.js';
 import { RotationClock, swipeDirection } from './core/rotation.js';
 import { QuickTimer } from './core/timer.js';
@@ -176,7 +177,7 @@ document.querySelector('#wake-lock').addEventListener('click',async()=>{
 });
 document.addEventListener('visibilitychange',()=>{
   rotation.reset(performance.now());
-  if(!document.hidden){agents.refresh();weather.refresh();if(wakeWanted&&!wakeLock)requestWake();}
+  if(!document.hidden){serverConnection.check();refreshSources();if(wakeWanted&&!wakeLock)requestWake();}
 });
 document.querySelector('#city-form').addEventListener('submit',async e=>{
   e.preventDefault();const query=document.querySelector('#city-search').value.trim(),results=document.querySelector('#city-results');
@@ -207,6 +208,19 @@ function updateDate(){document.querySelector('#top-date').textContent=formatDate
 updateDate();setInterval(updateDate,30000);
 mountActive();updateRotationButton();weather.setCity(settings.city);agents.refresh();
 setInterval(()=>{if(!document.hidden)agents.refresh();},3000);setInterval(()=>weather.refresh(),60000);
+// Recover data in place: keep the active screen, local timers and unsent forms.
+function refreshSources(){agents.refresh(true);weather.refresh(true);for(const source of [music,computer,remote,calendar,home])source.refresh(true);if(dialog.open)connections.refresh();}
+const connectionNotice=document.querySelector('#connection-notice');let recoveredTimer,connectionWasOffline=false;
+const serverConnection=new ServerConnection({onRecover:refreshSources});
+serverConnection.subscribe(state=>{
+ const down=state.status==='offline';
+ document.documentElement.classList.toggle('server-offline',down);
+ if(down){clearTimeout(recoveredTimer);connectionWasOffline=true;connectionNotice.hidden=false;connectionNotice.classList.remove('recovered');connectionNotice.querySelector('span').textContent=state.reason==='network'?'Нет Wi-Fi · ждём подключения':'Компьютер недоступен · подключаемся снова';connectionNotice.querySelector('button').hidden=false;}
+ else if(state.status==='connected'&&connectionWasOffline){clearTimeout(recoveredTimer);connectionWasOffline=false;connectionNotice.hidden=false;connectionNotice.classList.add('recovered');connectionNotice.querySelector('span').textContent='Связь восстановлена';connectionNotice.querySelector('button').hidden=true;recoveredTimer=setTimeout(()=>connectionNotice.hidden=true,3500);}
+});
+document.querySelector('#connection-retry').addEventListener('click',()=>serverConnection.check());
+window.addEventListener('offline',()=>serverConnection.setOnline(false));window.addEventListener('online',()=>serverConnection.setOnline(true));
+serverConnection.online=navigator.onLine!==false;serverConnection.start();if(!serverConnection.online)serverConnection.setOnline(false);
 const questionNotice=document.querySelector('#agent-question');
 let noticeProvider=null;
 questionNotice.addEventListener('click',()=>{if(!noticeProvider)return;if(!enabled().includes(noticeProvider)){settings.enabledScreens.push(noticeProvider);persist();}go(noticeProvider);});
@@ -232,7 +246,7 @@ setInterval(()=>{
  breaks.tick();updateQuestionNotice();
  breakReminder.hidden=isEvening(settings)||!breaks.due||activeId==='timers'&&context.timeMode==='breaks';
  breakReminder.textContent=breaks.phase==='work'?'Пора отдохнуть →':'Перерыв завершён →';
- const quiet=isEvening(settings),wall=Date.now(),blocked=document.hidden||dialog.open||timer.notice||!!stage.querySelector('.action-confirm')||performance.now()<rotation.resumeAt;
+ const quiet=isEvening(settings),wall=Date.now(),blocked=serverConnection.state.status!=='connected'||document.hidden||dialog.open||timer.notice||!!stage.querySelector('.action-confirm')||performance.now()<rotation.resumeAt;
  const transition=smart.next({calendar:calendar.snapshot,agents:agents.snapshot,quiet,enabled:settings.smartTransitions,allow:settings.autoRotate,blocked,now:wall});
  if(transition){if(transition.target==='meeting')context.meetingId=approachingMeeting(calendar.snapshot,wall)?.id;navigate(transition.target,false);}
  updateDim();

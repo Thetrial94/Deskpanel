@@ -16,8 +16,8 @@ export class MusicSource {
       if(!this.listeners.size){clearInterval(this.timer);document.removeEventListener('visibilitychange',this.onVisible);}
     };
   }
-  async refresh() {
-    if(this.refreshing||this.pending)return;
+  async refresh(force=false) {
+    if(this.refreshing||this.pending){this.refreshQueued=this.refreshQueued||force;return;}
     this.refreshing=true;
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
     try {
@@ -27,7 +27,7 @@ export class MusicSource {
       if(data.schemaVersion!==1||!['connected','starting','stopped','not_installed','different_installation','unavailable','unsupported'].includes(data.connection))throw Error();
       this.snapshot=data;
     } catch { this.snapshot={connection:'disconnected',playback:'unknown',track:null}; }
-    finally {clearTimeout(timer);this.refreshing=false;this.emit();}
+    finally {clearTimeout(timer);this.refreshing=false;this.emit();if(this.refreshQueued){this.refreshQueued=false;this.refresh(true);}}
   }
   async command(command,value) {
     if(this.pending)return;

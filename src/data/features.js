@@ -13,11 +13,12 @@ export class FeatureSource {
   return ()=>{this.listeners.delete(fn);if(!this.listeners.size){clearInterval(this.timer);document.removeEventListener('visibilitychange',this.visible);}};
  }
  async refresh(force=false){
-  if(this.refreshing||(this.pending&&!force))return;
+  if(this.refreshing){this.refreshQueued=this.refreshQueued||force;return;}
+  if(this.pending&&!force)return;
   this.refreshing=true;
   try{this.snapshot=await request(this.path);}
   catch(e){this.snapshot={connection:e.message==='pair_required'?'pair_required':'unavailable'};}
-  finally{this.refreshing=false;this.emit();}
+  finally{this.refreshing=false;this.emit();if(this.refreshQueued){this.refreshQueued=false;this.refresh(true);}}
  }
  async command(data){
   if(this.pending)return;this.pending=true;this.message='Выполняем…';this.emit();
