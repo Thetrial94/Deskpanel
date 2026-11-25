@@ -1,6 +1,6 @@
 // Read-only health checks. Commands are never queued or replayed on reconnect.
 export class ServerConnection {
- constructor({fetcher=(...args)=>globalThis.fetch(...args),now=Date.now,schedule=(fn,ms)=>setTimeout(fn,ms),cancel=id=>clearTimeout(id),onRecover=()=>{}}={}){
+ constructor({fetcher=globalThis.fetch.bind(globalThis),now=Date.now,schedule=globalThis.setTimeout.bind(globalThis),cancel=globalThis.clearTimeout.bind(globalThis),onRecover=()=>{}}={}){
   Object.assign(this,{fetcher,now,schedule,cancel,onRecover});this.listeners=new Set();
   this.state={status:'connecting',reason:null,lastSuccess:null,failures:0};this.running=false;this.online=true;this.pending=null;this.generation=0;
  }

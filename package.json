@@ -8,7 +8,8 @@
     "start": "node server/index.mjs",
     "start:phone": "node server/index.mjs --lan",
     "test": "node --test",
-    "check": "node scripts/check.mjs"
+    "check": "node scripts/check.mjs",
+    "check:layout": "node scripts/check-layout.mjs"
   },
   "engines": {
     "node": ">=22.13"

@@ -1,3 +1,5 @@
+import {setupScreenReorder} from './ui/reorder.js';
+import {OVERVIEW_MODULES,MAX_OVERVIEW_MODULES} from './core/overview.js';
 import {ComputerSources} from './data/computers.js';
 import { ServerConnection } from './core/connection.js';
 import { loadSettings, normalizeSettings, saveSettings,resolveScreenId } from './core/settings.js';
@@ -83,9 +85,31 @@ function updateDim() { const hour = new Date().getHours(),quiet=isEvening(settin
 function renderScreenSettings() {
   document.querySelector('#screen-settings').innerHTML = settings.screenOrder.map((id,index) => {
     const on = settings.enabledScreens.includes(id), last = on && settings.enabledScreens.length===1;
-    return '<div class="screen-setting"><label><input type="checkbox" data-enable="'+id+'" '+(on?'checked':'')+' '+(last?'disabled':'')+'>'+icon(screenById.get(id).icon)+'<span>'+screenById.get(id).title+'</span></label><div><button class="icon-button small-button" data-move="'+id+'" data-delta="-1" aria-label="'+screenById.get(id).title+': выше" '+(index===0?'disabled':'')+'>'+icon('up')+'</button><button class="icon-button small-button" data-move="'+id+'" data-delta="1" aria-label="'+screenById.get(id).title+': ниже" '+(index===settings.screenOrder.length-1?'disabled':'')+'>'+icon('down')+'</button></div></div>';
+    const position=enabled().indexOf(id)+1;
+    return '<div class="screen-setting '+(!on?'screen-disabled':'')+'" data-screen-order-id="'+id+'"><button type="button" class="screen-drag-handle" data-drag-screen="'+id+'" aria-label="'+screenById.get(id).title+': перетащить или переместить стрелками клавиатуры" aria-pressed="false">⠿</button><span class="screen-order-number">'+(on?String(position).padStart(2,'0'):'—')+'</span><label><input type="checkbox" data-enable="'+id+'" '+(on?'checked':'')+' '+(last?'disabled':'')+'>'+icon(screenById.get(id).icon)+'<span>'+screenById.get(id).title+'</span></label><div class="screen-order-actions"><button class="icon-button small-button" data-move="'+id+'" data-delta="-1" aria-label="'+screenById.get(id).title+': выше" '+(index===0?'disabled':'')+'>'+icon('up')+'</button><button class="icon-button small-button" data-move="'+id+'" data-delta="1" aria-label="'+screenById.get(id).title+': ниже" '+(index===settings.screenOrder.length-1?'disabled':'')+'>'+icon('down')+'</button></div></div>';
   }).join('');
 }
+function renderOverviewSettings(){
+ const selected=new Set(settings.overviewModules),full=selected.size>=MAX_OVERVIEW_MODULES;
+ document.querySelector('#overview-module-counter').textContent='Выбрано '+selected.size+' из '+MAX_OVERVIEW_MODULES+' · в каталоге '+OVERVIEW_MODULES.length;
+ document.querySelector('#overview-module-settings').innerHTML=OVERVIEW_MODULES.map(m=>{
+  const on=selected.has(m.id),i=settings.overviewModules.indexOf(m.id),disabled=on?selected.size===1:full;
+  return '<div class="overview-option"><label class="setting-row"><span>'+m.title+'<small>'+m.description+'</small></span><input type="checkbox" data-overview-module="'+m.id+'" '+(on?'checked':'')+' '+(disabled?'disabled':'')+'></label>'+(on&&m.id==='clock'?'<span class="overview-anchor">Слева сверху</span>':on?'<div class="overview-module-order"><button class="icon-button small-button" data-overview-move="'+m.id+'" data-delta="-1" aria-label="'+m.title+': выше" '+(i===(selected.has('clock')?1:0)?'disabled':'')+'>↑</button><span>'+(i+1)+'</span><button class="icon-button small-button" data-overview-move="'+m.id+'" data-delta="1" aria-label="'+m.title+': ниже" '+(i===selected.size-1?'disabled':'')+'>↓</button></div>':'')+'</div>';
+ }).join('');
+ document.querySelector('#overview-module-hint').textContent=full?'Выбрано пять. Убери один модуль, чтобы добавить другой.':'Выбери ещё '+(MAX_OVERVIEW_MODULES-selected.size)+'. Порядок меняется стрелками у выбранных модулей.';
+}
+function updateOverviewSettings(){persist();renderOverviewSettings();if(activeId==='overview')mountActive();}
+document.querySelector('#overview-module-settings').addEventListener('change',e=>{
+ const id=e.target.dataset.overviewModule;if(!id)return;
+ if(e.target.checked&&settings.overviewModules.length>=MAX_OVERVIEW_MODULES){e.target.checked=false;return;}
+ settings.overviewModules=e.target.checked?[...settings.overviewModules,id]:settings.overviewModules.filter(m=>m!==id);updateOverviewSettings();
+});
+document.querySelector('#overview-module-settings').addEventListener('click',e=>{
+ const button=e.target.closest('[data-overview-move]');if(!button||button.disabled)return;
+ const from=settings.overviewModules.indexOf(button.dataset.overviewMove),to=from+Number(button.dataset.delta);
+ if(from<0||button.dataset.overviewMove==='clock'||to<(settings.overviewModules.includes('clock')?1:0)||to>=settings.overviewModules.length)return;
+ [settings.overviewModules[from],settings.overviewModules[to]]=[settings.overviewModules[to],settings.overviewModules[from]];updateOverviewSettings();
+});
 function renderCity() {
   document.querySelector('#selected-city').textContent = settings.city ? 'Выбран: '+settings.city.name+(settings.city.country ? ' · '+settings.city.country : '') : 'Город пока не выбран. Данные появятся после настройки.';
   document.querySelector('#city-clear').hidden = !settings.city;
@@ -95,7 +119,7 @@ function openSettings() {
   document.querySelector('#setting-interval').value = String(settings.interval);
   document.querySelector('#setting-resume').value = String(settings.resumeAfter);
   document.querySelector('#setting-evening-start').value=settings.eveningStart;document.querySelector('#setting-evening-end').value=settings.eveningEnd;
-  renderScreenSettings(); renderCity(); dialog.showModal(); connections.open();
+  renderScreenSettings(); renderOverviewSettings(); renderCity(); dialog.showModal(); connections.open();
 }
 const connections = setupConnections(document.querySelector('#connections-settings'),{settings:()=>settings,saveDevices:devices=>{settings.devices=devices;persist();if(activeId==='computer')mountActive();},changed:()=>{computers.refresh(true);agents.refresh(true);calendar.refresh();home.refresh();remote.refresh();music.refresh(true);}});
 function closeSettings() { dialog.close(); interact(); }
@@ -112,18 +136,26 @@ document.querySelector('#screen-settings').addEventListener('change',e=>{
   const id=e.target.dataset.enable; if(!id) return;
   settings.enabledScreens=e.target.checked?[...settings.enabledScreens,id]:settings.enabledScreens.filter(x=>x!==id);persist();renderScreenSettings();
 });
+function moveScreen(id,to){
+ const from=settings.screenOrder.indexOf(id);if(from<0||to<0||to>=settings.screenOrder.length||from===to)return;
+ settings.screenOrder.splice(from,1);settings.screenOrder.splice(to,0,id);persist();renderScreenSettings();
+ document.querySelector('#screen-order-status').textContent=screenById.get(id).title+': позиция '+(to+1)+'. Порядок сохранён.';
+ document.querySelector('[data-drag-screen="'+id+'"]').focus({preventScroll:true});
+}
+setupScreenReorder(document.querySelector('#screen-settings'),moveScreen);
 document.querySelector('#screen-settings').addEventListener('click',e=>{
-  const button=e.target.closest('[data-move]');if(!button) return;
-  const i=settings.screenOrder.indexOf(button.dataset.move),j=i+Number(button.dataset.delta);
-  if(j<0||j>=settings.screenOrder.length)return;
-  [settings.screenOrder[i],settings.screenOrder[j]]=[settings.screenOrder[j],settings.screenOrder[i]];
-  persist();renderScreenSettings();
+ const button=e.target.closest('[data-move]');if(!button||button.disabled)return;
+ moveScreen(button.dataset.move,settings.screenOrder.indexOf(button.dataset.move)+Number(button.dataset.delta));
 });
+document.querySelector('.settings-shortcuts').addEventListener('click',e=>{
+ const button=e.target.closest('[data-settings-jump]');if(button)document.getElementById(button.dataset.settingsJump)?.scrollIntoView({block:'start',behavior:'smooth'});
+});
+
 document.querySelector('#rotation-toggle').addEventListener('click',toggleRotation);
 nav.addEventListener('click',e=>{const button=e.target.closest('[data-screen]');if(button)go(button.dataset.screen);});
 document.querySelector('.brand').addEventListener('click',e=>{e.preventDefault();go('overview');});
 stage.addEventListener('click',e=>{
-  if(e.target.closest('[data-settings]'))openSettings();
+  if(e.target.closest('[data-settings]')){openSettings();if(e.target.closest('[data-overview-settings]'))document.querySelector('#overview-settings').scrollIntoView({block:'start'});}
   const hide=e.target.closest('[data-hide-screen]');if(hide&&settings.enabledScreens.length>1){settings.enabledScreens=settings.enabledScreens.filter(id=>id!==hide.dataset.hideScreen);persist();return;}
   const meeting=e.target.closest('[data-meeting]');if(meeting){context.meetingId=meeting.dataset.meeting;navigate('meeting');return;}
   const link=e.target.closest('[data-go]');if(link)navigate(link.dataset.go);
@@ -227,7 +259,7 @@ let noticeProvider=null;
 questionNotice.addEventListener('click',()=>{if(!noticeProvider)return;if(!enabled().includes(noticeProvider)){settings.enabledScreens.push(noticeProvider);persist();}go(noticeProvider);});
 function updateQuestionNotice(){
  const notice=attentionNotice(agents.snapshot);noticeProvider=notice?.provider;
- questionNotice.hidden=isEvening(settings)||!notice||activeId===noticeProvider;
+ questionNotice.hidden=isEvening(settings)||!notice||activeId===noticeProvider||activeId==='overview'&&settings.overviewModules.includes(noticeProvider);
  const label=notice?.label||'';
  if(questionNotice.textContent!==label)questionNotice.textContent=label;
  document.documentElement.classList.toggle('has-agent-question',!questionNotice.hidden);

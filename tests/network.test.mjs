@@ -6,7 +6,7 @@ import {createAppServer} from '../server/index.mjs';
 const memory=(data={})=>({async get(){return data;},async update(fn){data=fn(structuredClone(data));return data;}});
 const token='a'.repeat(64);
 const reply=(data,status=200,headers={})=>new Response(JSON.stringify(data),{status,headers});
-const providers=(codex='connected',claude='connected')=>({schemaVersion:1,providers:[{id:'codex',connection:codex,sessions:[{id:'laptop-session'}]},{id:'claude',connection:claude,sessions:[{id:'pc-session'}]}]});
+const providers=(codex='connected',claude='connected')=>({schemaVersion:1,providers:[{id:'codex',connection:codex,usage:{windows:{week:{usedPercent:33}}},sessions:[{id:'laptop-session'}]},{id:'claude',connection:claude,usage:{windows:{fiveHour:{usedPercent:90}}},sessions:[{id:'pc-session'}]}]});
 const config=()=>({network:{name:'Хаб',nodes:[{id:'laptop',name:'Ноутбук',url:'http://192.168.0.2:4317',token},{id:'pc',name:'ПК',url:'http://192.168.0.3:4317',token}],bindings:{codex:'laptop',claude:'pc',music:'pc'}}});
 test('node addresses reject Internet, credentials, loopback, paths and privileged ports',()=>{
  assert.equal(nodeURL('http://192.168.0.2:4317/'),'http://192.168.0.2:4317');
@@ -17,7 +17,8 @@ test('both agent sources work together; either missing machine only disconnects 
  const network=new Network(store,{fetcher:async(url,options)=>{paths.push(url);assert.equal(options.redirect,'error');assert.equal(options.headers.Cookie,'deskpanel_device='+token);if(down&&url.includes(down))throw Error('offline');return reply(providers());}});
  let data=await network.agents(async()=>{throw Error('hub has no agents');});
  assert.deepEqual(data.providers.map(p=>p.connection),['connected','connected']);assert.equal(data.providers[0].source.name,'Ноутбук');assert.equal(data.providers[1].source.name,'ПК');
- down='192.168.0.2';data=await network.agents(async()=>providers());assert.deepEqual(data.providers.map(p=>p.connection),['disconnected','connected']);assert.deepEqual(data.providers[0].sessions,[]);
+ assert.equal(data.providers[0].usage.windows.week.usedPercent,33);assert.equal(data.providers[1].usage.windows.fiveHour.usedPercent,90);assert.equal(data.providers[1].usage.windows.week,undefined);
+ down='192.168.0.2';data=await network.agents(async()=>providers());assert.deepEqual(data.providers.map(p=>p.connection),['disconnected','connected']);assert.deepEqual(data.providers[0].sessions,[]);assert.equal(data.providers[0].usage,undefined);assert.equal(data.providers[1].usage.windows.fiveHour.usedPercent,90);
  down='192.168.0.3';data=await network.agents(async()=>providers());assert.deepEqual(data.providers.map(p=>p.connection),['connected','disconnected']);
  assert.ok(paths.every(p=>p.endsWith('/api/agents/local')));
 });

@@ -26,3 +26,10 @@ test('hanging health request times out and schedules a retry; wrong application 
  const pending=monitor.start();[...jobs.values()].find(job=>job.ms===4000).fn();await pending;assert.equal(monitor.state.status,'offline');
  monitor.fetcher=async()=>({ok:true,json:async()=>({ok:true,app:'another-app'})});await monitor.check();assert.equal(monitor.state.status,'offline');monitor.stop();
 });
+
+test('browser defaults call fetch and timers with their required global receiver',async t=>{
+ t.mock.method(globalThis,'fetch',async function(){assert.equal(this,globalThis);return {ok:true,json:async()=>({ok:true,app:'deskpanel'})};});
+ t.mock.method(globalThis,'setTimeout',function(){assert.equal(this,globalThis);return 1;});
+ t.mock.method(globalThis,'clearTimeout',function(){assert.equal(this,globalThis);});
+ const connection=new ServerConnection();await connection.start();assert.equal(connection.state.status,'connected');connection.stop();
+});
