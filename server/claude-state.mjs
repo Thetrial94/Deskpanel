@@ -3,7 +3,8 @@ import {codexSnapshot,mergeCodexEvent} from './codex-state.mjs';
 // Claude Code hook events. Claude has no Interrupt event: an interrupted turn ends with Stop.
 export const CLAUDE_EVENTS=['SessionStart','UserPromptSubmit','PreToolUse','PermissionRequest','PostToolUse','Notification','Stop','SessionEnd'];
 const hash=x=>createHash('sha256').update(x).digest('hex');
-const provider={id:'claude',name:'Claude',events:CLAUDE_EVENTS};
+// Waiting for the user sends no further events, so keep it visible for 30 minutes (until Stop/SessionEnd or the ceiling).
+const provider={id:'claude',name:'Claude',events:CLAUDE_EVENTS,staleMs:{approval:1800000,waiting:1800000}};
 // Keeps only lifecycle metadata: hashed session id, project folder name, status and time.
 export function claudeEvent(input,now=Date.now()){
  if(!input||!CLAUDE_EVENTS.includes(input.hook_event_name)||typeof input.session_id!=='string'||!input.session_id||input.session_id.length>200)return null;

@@ -44,12 +44,13 @@ test('private APIs reject unpaired devices and cross-origin writes, paired setti
  const original=features.handle.bind(features);features.handle=(path,request,res,send)=>original(path,{method:request.method,headers:request.headers,socket:{remoteAddress:'192.168.0.9'},[Symbol.asyncIterator]:()=>request[Symbol.asyncIterator]()},res,send);
  const base='http://127.0.0.1:'+server.address().port,headers={Origin:base,'Content-Type':'application/json','X-DeskPanel':'1'};
  for(const path of ['calendar','home','remote','connections'])assert.equal((await fetch(base+'/api/'+path)).status,403);
- assert.equal((await fetch(base+'/api/computer')).status,200);
+ assert.equal((await fetch(base+'/api/computer')).status,403);
  const code=features.access.issue().code;
  const pairing=await fetch(base+'/api/access',{method:'POST',headers,body:JSON.stringify({command:'pair',code})});
  assert.equal(pairing.status,200);const cookie=pairing.headers.get('set-cookie').split(';')[0];
  assert.match(pairing.headers.get('set-cookie'),/HttpOnly; SameSite=Strict/);
  const privateHeaders={...headers,Cookie:cookie};
+ assert.equal((await fetch(base+'/api/computer',{headers:privateHeaders})).status,200);
  assert.deepEqual(await (await fetch(base+'/api/connections',{headers:privateHeaders})).json(),{local:false,calendar:true,home:'yandex'});
  assert.equal((await fetch(base+'/api/connections',{method:'POST',headers:privateHeaders,body:JSON.stringify({kind:'calendar',clear:true})})).status,403);
  assert.equal((await fetch(base+'/api/remote',{method:'POST',headers:{...privateHeaders,Origin:'https://evil.test'},body:'{"command":"lock","value":true}'})).status,403);

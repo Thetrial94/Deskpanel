@@ -24,8 +24,8 @@ export class Features {
      json(200,{paired:true});return true;
     }json(403,{error:'local_setup_required'});return true;
    }
-   if(path==='/api/computer'&&req.method!=='POST'){json(200,this.computer.metrics());return true;}
    if(!(await this.access.authorized(req))){json(403,{error:'pair_required'});return true;}
+   if(path==='/api/computer'&&req.method!=='POST'){json(200,this.computer.metrics());return true;}
    if(path==='/api/connections'){
     if(req.method==='POST'){
      if(!local){json(403,{error:'local_setup_required'});return true;}

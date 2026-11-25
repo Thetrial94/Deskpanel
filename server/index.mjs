@@ -12,10 +12,12 @@ import { MusicBridge } from './music.mjs';
 import { handleMusic } from './music-http.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.json':'application/json; charset=utf-8'};
+// The app loads only its own scripts and styles; inline style attributes are used for progress bars.
+const csp="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
 export function createAppServer({music=new MusicBridge(),features=new Features(),agentReader=readAgentSnapshot,weather=new Weather(),network=new Network(features.store)}={}) {
   const server = createServer(async (req, res) => {
     const send = (status, body, type = 'application/json; charset=utf-8') => {
-      res.writeHead(status, {'Content-Type':type,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'});
+      res.writeHead(status, {'Content-Type':type,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Content-Security-Policy':csp});
       res.end(req.method === 'HEAD' ? undefined : body);
     };
     try {
@@ -31,7 +33,8 @@ export function createAppServer({music=new MusicBridge(),features=new Features()
       if(routed?.localPath)path=routed.localPath;else if(routed)return;
       if(await features.handle(path,req,res,send))return;
       if(path === '/api/music'||path === '/api/music/local'){
-       if(path.endsWith('/local')&&(!checkRequest(req,req.method==='POST')||!await features.access.authorized(req))){send(403,'{"error":"pair_required"}');return;}
+       // Every music request needs a paired device (or localhost): a LAN host must not drive the player unpaired.
+       if(!await features.access.authorized(req)||path.endsWith('/local')&&!checkRequest(req,req.method==='POST')){send(403,'{"error":"pair_required"}');return;}
        const target=path.endsWith('/local')||routed?.localPath?{id:'local'}:await network.target('music');
        if(!target||target.id!=='local'){
         if(!checkRequest(req,req.method==='POST')||!await features.access.authorized(req)){send(403,'{"error":"pair_required"}');return;}

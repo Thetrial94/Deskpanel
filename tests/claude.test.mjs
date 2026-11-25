@@ -24,7 +24,9 @@ test('Claude statuses: work, question, permission, completion and stale',()=>{
  state=mergeCodexEvent(state,claudeEvent(input('PostToolUse',{tool_name:'AskUserQuestion'}),3000));assert.equal(state.status,'working');
  assert.equal(claudeEvent(input('PermissionRequest',{tool_name:'Bash'}),1).status,'approval');
  state=mergeCodexEvent(state,claudeEvent(input('Notification',{notification_type:'permission_prompt'}),4000));assert.equal(state.status,'approval');assert.equal(state.startedAt,1000);
- assert.equal(claudeSnapshot([state],130000).sessions[0].status,'stale');
+ assert.equal(claudeSnapshot([state],130000).sessions[0].status,'approval');
+ assert.equal(claudeSnapshot([state],4000+1800001).sessions[0].status,'stale');
+ const working=mergeCodexEvent(null,claudeEvent(input('PreToolUse'),1000));assert.equal(claudeSnapshot([working],130000).sessions[0].status,'stale');
  state=mergeCodexEvent(state,claudeEvent(input('Stop'),5000));assert.equal(state.status,'completed');
  assert.equal(claudeEvent(input('Notification',{notification_type:'idle_prompt'})),null);
  assert.equal(claudeSnapshot([claudeEvent(input('SessionEnd'),6000)],6001).sessions.length,0);
