@@ -15,6 +15,7 @@ import { attentionNotice } from './core/agent-view.js';
 import { AgentSource } from './data/agents.js';
 import { BreakTimer } from './core/breaks.js';
 import { FeatureSource } from './data/features.js';
+import { BuildWatcher } from './core/build.js';
 import { setupConnections } from './ui/connections.js';
 
 let storage;
@@ -271,6 +272,9 @@ const timerNotice=document.querySelector('#timer-notice');
 timerNotice.addEventListener('cancel',()=>timer.dismiss());
 document.querySelector('#timer-dismiss').addEventListener('click',()=>{timer.dismiss();timerNotice.close();});
 document.querySelector('#timer-extend').addEventListener('click',()=>{timer.extend();timerNotice.close();context.timeMode='timer';navigate('timers');});
+// Kiosk pages stay open for days: pick up new panel code without anyone pressing reload.
+const build=new BuildWatcher({reload:()=>location.reload(),canReload:()=>!document.hidden&&!dialog.open&&!timerNotice.open&&!stage.querySelector('.action-confirm')&&performance.now()>=rotation.resumeAt});
+build.check();setInterval(()=>build.check(),30000);
 const breakReminder=document.querySelector('#break-reminder');
 breakReminder.addEventListener('click',()=>{context.timeMode='breaks';navigate('timers');});
 setInterval(()=>{
