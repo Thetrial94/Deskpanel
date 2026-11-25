@@ -23,13 +23,13 @@ let settings = loadSettings(storage);
 const timer = new QuickTimer(storage),smart = new SmartTransitions(storage);
 const computers=new ComputerSources(storage);
 const focus = new FocusTimer(storage), weather = new WeatherSource(), agents = new AgentSource(), music = computers.source('music');
-const breaks = new BreakTimer(storage), computer = computers.source('computer',3000), remote = computers.source('remote'), calendar = new FeatureSource('/api/calendar',60000), home = new FeatureSource('/api/home',10000);
+const breaks = new BreakTimer(storage), computer = computers.source('computer',3000), remote = computers.source('remote'), calendar = new FeatureSource('/api/calendar',60000), home = new FeatureSource('/api/home',10000), tv = new FeatureSource('/api/tv',3000);
 const stage = document.querySelector('#stage'), nav = document.querySelector('#screen-nav'), dialog = document.querySelector('#settings-dialog');
 const rotation = new RotationClock(settings.interval*1000,performance.now());
 const requestedScreen=resolveScreenId(location.hash.slice(1));
 let activeId = settings.enabledScreens.includes(requestedScreen) ? requestedScreen : settings.screenOrder.find(id=>settings.enabledScreens.includes(id));
 let cleanup = () => {}, transitionTimer, toastTimer, lastStatus = '', pointer = null, wakeLock = null, wakeWanted = false, cityRequest = null;
-const context = {settings:()=>settings,focus,weather,agents,music,breaks,computer,computers,remote,calendar,home,timer,navigate:id=>navigate(id),meetingId:null,timeMode:['focus','breaks'].includes(location.hash.slice(1))?location.hash.slice(1):null};
+const context = {settings:()=>settings,focus,weather,agents,music,breaks,computer,computers,remote,calendar,home,tv,timer,navigate:id=>navigate(id),meetingId:null,timeMode:['focus','breaks'].includes(location.hash.slice(1))?location.hash.slice(1):null};
 const enabled = () => settings.screenOrder.filter(id=>settings.enabledScreens.includes(id));
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 function toast(message) { clearTimeout(toastTimer); const node = document.querySelector('#toast'); node.textContent = message; node.classList.add('visible'); toastTimer = setTimeout(()=>node.classList.remove('visible'),3600); }
@@ -121,7 +121,7 @@ function openSettings() {
   document.querySelector('#setting-evening-start').value=settings.eveningStart;document.querySelector('#setting-evening-end').value=settings.eveningEnd;
   renderScreenSettings(); renderOverviewSettings(); renderCity(); dialog.showModal(); connections.open();
 }
-const connections = setupConnections(document.querySelector('#connections-settings'),{settings:()=>settings,saveDevices:devices=>{settings.devices=devices;persist();if(activeId==='computer')mountActive();},changed:()=>{computers.refresh(true);agents.refresh(true);calendar.refresh();home.refresh();remote.refresh();music.refresh(true);}});
+const connections = setupConnections(document.querySelector('#connections-settings'),{settings:()=>settings,saveDevices:devices=>{settings.devices=devices;persist();if(activeId==='computer')mountActive();},changed:()=>{computers.refresh(true);agents.refresh(true);calendar.refresh();home.refresh();tv.refresh();remote.refresh();music.refresh(true);}});
 function closeSettings() { dialog.close(); interact(); }
 document.querySelector('#settings-open').addEventListener('click',openSettings);
 for (const id of ['settings-close','settings-done']) document.querySelector('#'+id).addEventListener('click',closeSettings);
@@ -242,7 +242,7 @@ updateDate();setInterval(updateDate,30000);
 mountActive();updateRotationButton();weather.setCity(settings.city);agents.refresh();
 setInterval(()=>{if(!document.hidden)agents.refresh();},3000);setInterval(()=>weather.refresh(),60000);
 // Recover data in place: keep the active screen, local timers and unsent forms.
-function refreshSources(){agents.refresh(true);weather.refresh(true);for(const source of [computers,music,computer,remote,calendar,home])source.refresh(true);if(dialog.open)connections.refresh();}
+function refreshSources(){agents.refresh(true);weather.refresh(true);for(const source of [computers,music,computer,remote,calendar,home,tv])source.refresh(true);if(dialog.open)connections.refresh();}
 const connectionNotice=document.querySelector('#connection-notice');let recoveredTimer,connectionWasOffline=false;
 const serverConnection=new ServerConnection({onRecover:refreshSources});
 serverConnection.subscribe(state=>{

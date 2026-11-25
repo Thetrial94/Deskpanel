@@ -1,0 +1,25 @@
+.tv-screen{display:flex;flex-direction:column;gap:14px;height:100%}
+.tv-main{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px;flex:1;min-height:0}
+.tv-main[hidden],.tv-apps[hidden]{display:none}
+.tv-now{padding:22px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.tv-title{margin:4px 0 0;font-size:clamp(24px,4.2vw,44px);line-height:1.08;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.tv-detail{margin:0;font-size:15px}
+.tv-progress{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.tv-progress span{display:block;height:100%;background:var(--accent)}
+.tv-row{margin-top:auto;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.tv-row .button{min-height:52px;padding:10px 16px;display:inline-flex;align-items:center;gap:8px;font-size:15px}
+.tv-row [data-tv-power].tv-on{border-color:var(--accent)}
+.tv-volume{display:flex;gap:8px;margin-left:auto}
+.tv-volume .button{min-width:56px;justify-content:center;font-size:22px}
+.tv-volume [aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
+.tv-pad{padding:16px;display:flex;flex-direction:column;gap:12px;justify-content:center}
+.tv-dpad{display:grid;grid-template-columns:repeat(3,1fr);grid-template-areas:". up ." "left ok right" ". down .";gap:8px}
+.tv-key{min-height:56px;font-size:18px;padding:6px;touch-action:manipulation}
+.pad-up{grid-area:up}.pad-left{grid-area:left}.pad-ok{grid-area:ok;font-weight:700}.pad-right{grid-area:right}.pad-down{grid-area:down}
+.tv-keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tv-keys .tv-key{font-size:14px}
+.tv-apps{display:flex;gap:10px;overflow-x:auto;padding-bottom:2px}
+.tv-app{flex:0 0 auto;min-height:48px;padding:10px 18px;border-left:4px solid var(--app,var(--accent));font-size:15px;color:var(--text);cursor:pointer}
+.tv-app:disabled,.tv-key:disabled,.tv-volume .button:disabled{opacity:.45}
+@media (orientation:portrait),(max-width:640px){.tv-main{grid-template-columns:1fr}.tv-title{font-size:28px}}
+@media (max-height:430px){.tv-now{padding:16px}.tv-key{min-height:44px}.tv-row .button{min-height:44px}.tv-screen{gap:10px}}

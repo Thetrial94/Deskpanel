@@ -1,8 +1,8 @@
 import {OVERVIEW_MODULES,DEFAULT_OVERVIEW_MODULES,MAX_OVERVIEW_MODULES} from './overview.js';
-export const SCREEN_IDS = ['overview', 'weather', 'music', 'codex', 'claude', 'timers', 'services', 'computer', 'remote', 'calendar', 'home'];
+export const SCREEN_IDS = ['overview', 'weather', 'music', 'codex', 'claude', 'timers', 'services', 'computer', 'remote', 'tv', 'calendar', 'home'];
 export const DEFAULT_CITY = Object.freeze({name: 'Москва', latitude: 55.7558, longitude: 37.6173, country: 'Россия'});
 export const DEFAULTS = Object.freeze({
-  version: 6, autoRotate: true, interval: 20, resumeAfter: 30,
+  version: 7, autoRotate: true, interval: 20, resumeAfter: 30,
   screenOrder: SCREEN_IDS, enabledScreens: SCREEN_IDS,
   smartTransitions: true, eveningMode: true, eveningStart: 22, eveningEnd: 7,
   overviewModules: DEFAULT_OVERVIEW_MODULES,
@@ -19,6 +19,7 @@ export function normalizeSettings(value = {}) {
   if (!(value.version >= 3) && enabled.length && !enabled.includes('music')) enabled.push('music');
   if (!(value.version >= 4) && enabled.length) for(const id of ['computer','remote','calendar','home','timers']) if(!enabled.includes(id))enabled.push(id);
   if (!(value.version >= 5) && enabled.length && !enabled.includes('timers')) enabled.push('timers');
+  if (!(value.version >= 7) && enabled.length && !enabled.includes('tv')) enabled.push('tv');
   const chosenModules=Array.isArray(value.overviewModules)?[...new Set(value.overviewModules.map(id=>id==='weather'?'clock':id))].filter(id=>OVERVIEW_MODULES.some(m=>m.id===id)):DEFAULT_OVERVIEW_MODULES;
   const overviewModules=chosenModules.length?chosenModules.slice(0,MAX_OVERVIEW_MODULES):['clock'];
   if(overviewModules.includes('clock'))overviewModules.unshift(...overviewModules.splice(overviewModules.indexOf('clock'),1));
@@ -28,7 +29,7 @@ export function normalizeSettings(value = {}) {
     Number.isFinite(c.latitude) && Number.isFinite(c.longitude) && Math.abs(c.latitude) <= 90 && Math.abs(c.longitude) <= 180
     ? { name: c.name.slice(0, 100), latitude: c.latitude, longitude: c.longitude, country: String(c.country || '').slice(0, 80) } : null;
   return {
-    version: 6, autoRotate: typeof value.autoRotate === 'boolean' ? value.autoRotate : true,
+    version: 7, autoRotate: typeof value.autoRotate === 'boolean' ? value.autoRotate : true,
     interval: within(value.interval, 5, 120, 20), resumeAfter: within(value.resumeAfter, 5, 300, 30),
     overviewModules, screenOrder: order, enabledScreens: enabled.length ? enabled : ['overview'],
     smartTransitions: value.smartTransitions !== false, eveningMode: value.eveningMode !== false,

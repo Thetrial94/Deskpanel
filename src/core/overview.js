@@ -2,6 +2,7 @@ import {overviewContext,approachingMeeting,timedMeetings,countdown,meetingCountd
 import {calendarDateLabel} from './calendar.js';
 import {sortSessions,agentSummary} from './agent-view.js';
 import {sessionStatus} from './agent-labels.js';
+import {tvSummary} from './tv.js';
 export const MAX_OVERVIEW_MODULES=5;
 export const DEFAULT_OVERVIEW_MODULES=Object.freeze(['clock','primary','music','codex','claude']);
 export const OVERVIEW_MODULES=Object.freeze([
@@ -16,6 +17,7 @@ export const OVERVIEW_MODULES=Object.freeze([
  {id:'focus',title:'Фокус',description:'Текущий сеанс концентрации'},
  {id:'breaks',title:'Перерывы',description:'Рабочий интервал или время отдыха'},
  {id:'computers',title:'Компьютеры',description:'Какие из подключённых устройств сейчас в сети'},
+ {id:'tv',title:'Телевизор',description:'Что идёт на ТВ, включён ли он'},
  {id:'home',title:'Умный дом',description:'Устройства квартиры и включённый свет'},
  {id:'services',title:'Подключения',description:'Доступность календаря, дома, музыки и агентов'}
 ]);
@@ -69,6 +71,7 @@ export function overviewWidget(id,ctx,now=Date.now()){
   const devices=state.provider==='yandex'?(state.devices||[]).filter(d=>d.household?.name?.trim().toLocaleLowerCase('ru')==='квартира'):(state.devices||[]);
   return {title:devices.filter(d=>d.on===true).length+' включено',detail:devices.length+' устройств · '+(state.provider==='yandex'?'Квартира':'Home Assistant'),target:'home'};
  }
+ if(id==='tv')return {...tvSummary(ctx.tv?.snapshot),target:'tv'};
  if(id==='services'){
   const states=[['Календарь',ctx.calendar?.snapshot],['Дом',ctx.home?.snapshot],['Музыка',ctx.music?.snapshot],['Codex',ctx.agents?.snapshot?.codex],['Claude',ctx.agents?.snapshot?.claude]];
   const unavailable=states.filter(([,s])=>s?.connection!=='connected');

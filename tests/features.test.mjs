@@ -34,7 +34,7 @@ test('configuration validates destinations and never accepts credentials in URLs
  for(const base of ['http://example.com','https://user:pass@ha.example.com','https://ha.example.com/?token=x'])assert.throws(()=>validateConfig({kind:'home',provider:'ha',base,token:'test-token-123'}));
  assert.equal(validateConfig({kind:'home',provider:'ha',base:'http://192.168.0.2:8123',token:'test-token-123'}).value.base,'http://192.168.0.2:8123');
  const settings=normalizeSettings({version:5,enabledScreens:['clock'],city:null,devices:[{name:'PC',url:'http://192.168.0.2:4317/'},{name:'bad',url:'javascript:alert(1)'},{name:'bad2',url:'http://user:pass@example.com'}]});
- assert.deepEqual(settings.enabledScreens,['overview']);assert.equal(settings.city,null);assert.deepEqual(settings.devices,[{name:'PC',url:'http://192.168.0.2:4317'}]);
+ assert.deepEqual(settings.enabledScreens,['overview','tv']);assert.equal(settings.city,null);assert.deepEqual(settings.devices,[{name:'PC',url:'http://192.168.0.2:4317'}]);
 });
 test('private APIs reject unpaired devices and cross-origin writes, paired settings reveal no secrets',async t=>{
  const s=store({calendar:{url:'https://calendar.yandex.ru/private-test'},home:{provider:'yandex',token:'test-only-secret'}}),calls=[];
@@ -43,7 +43,7 @@ test('private APIs reject unpaired devices and cross-origin writes, paired setti
  // Simulate a LAN connection while preserving the real server request pipeline.
  const original=features.handle.bind(features);features.handle=(path,request,res,send)=>original(path,{method:request.method,headers:request.headers,socket:{remoteAddress:'192.168.0.9'},[Symbol.asyncIterator]:()=>request[Symbol.asyncIterator]()},res,send);
  const base='http://127.0.0.1:'+server.address().port,headers={Origin:base,'Content-Type':'application/json','X-DeskPanel':'1'};
- for(const path of ['calendar','home','remote','connections'])assert.equal((await fetch(base+'/api/'+path)).status,403);
+ for(const path of ['calendar','home','remote','tv','connections'])assert.equal((await fetch(base+'/api/'+path)).status,403);
  assert.equal((await fetch(base+'/api/computer')).status,403);
  const code=features.access.issue().code;
  const pairing=await fetch(base+'/api/access',{method:'POST',headers,body:JSON.stringify({command:'pair',code})});
@@ -51,7 +51,7 @@ test('private APIs reject unpaired devices and cross-origin writes, paired setti
  assert.match(pairing.headers.get('set-cookie'),/HttpOnly; SameSite=Strict/);
  const privateHeaders={...headers,Cookie:cookie};
  assert.equal((await fetch(base+'/api/computer',{headers:privateHeaders})).status,200);
- assert.deepEqual(await (await fetch(base+'/api/connections',{headers:privateHeaders})).json(),{local:false,calendar:true,home:'yandex'});
+ assert.deepEqual(await (await fetch(base+'/api/connections',{headers:privateHeaders})).json(),{local:false,calendar:true,home:'yandex',tv:null});
  assert.equal((await fetch(base+'/api/connections',{method:'POST',headers:privateHeaders,body:JSON.stringify({kind:'calendar',clear:true})})).status,403);
  assert.equal((await fetch(base+'/api/remote',{method:'POST',headers:{...privateHeaders,Origin:'https://evil.test'},body:'{"command":"lock","value":true}'})).status,403);
  assert.equal((await fetch(base+'/api/remote',{method:'POST',headers:{...privateHeaders,Origin:''},body:'{"command":"lock","value":true}'})).status,403);

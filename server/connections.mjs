@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
+import { tvBridgeURL } from './tv.mjs';
 function secureIO(action,data){
  return new Promise((resolve,reject)=>{
   if(process.platform!=='win32'){reject(Error('windows_required'));return;}
@@ -32,6 +33,11 @@ export function validateConfig(data){
    base=url.origin;
   }
   return {kind:'home',value:{provider:data.provider,base,token:data.token.trim()}};
+ }
+ if(data.kind==='tv'){
+  if(data.clear===true)return {kind:'tv',value:null};
+  if(typeof data.base!=='string'||data.base.length>200)throw Error('invalid_tv_url');
+  return {kind:'tv',value:{base:tvBridgeURL(data.base)}};
  }
  throw Error('invalid_config');
 }

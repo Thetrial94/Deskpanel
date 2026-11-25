@@ -38,6 +38,7 @@ export default {id:'overview',title:'Обзор',icon:'overview',accent:'lime',m
   if(['primary','codex','claude','services'].includes(id))sources.add(ctx.agents);
   if(['music','services'].includes(id))sources.add(ctx.music);
   if(['home','services'].includes(id))sources.add(ctx.home);
+  if(id==='tv')sources.add(ctx.tv);
   if(id==='computers')sources.add(ctx.computers);
  }
  const stops=[...sources].map(source=>source.subscribe(render));stops.push(mountTicker(root,render));

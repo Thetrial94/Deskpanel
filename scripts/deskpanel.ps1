@@ -53,7 +53,9 @@ switch($Action){
   $taskProcess=Get-DeskPanelSupervisor
   $taskStatusFile=Join-Path $taskRuntime 'service-status.json';$taskState=$null
   if($taskProcess -and (Test-Path -LiteralPath $taskStatusFile)){$taskState=Get-Content -LiteralPath $taskStatusFile -Raw | ConvertFrom-Json}
-  [pscustomobject]@{Autostart=[bool](Get-DeskPanelShortcut);SupervisorRunning=[bool]$taskProcess;SupervisorPid=if($taskProcess){$taskProcess.ProcessId}else{$null};ServerPid=$taskState.serverPid;State=$taskState.state;UpdatedAt=$taskState.updatedAt} | Format-List
+  $taskBridgeFile=Join-Path $taskRuntime 'tv-bridge-status.json';$taskBridge=$null
+  if($taskProcess -and (Test-Path -LiteralPath $taskBridgeFile)){$taskBridge=Get-Content -LiteralPath $taskBridgeFile -Raw | ConvertFrom-Json}
+  [pscustomobject]@{Autostart=[bool](Get-DeskPanelShortcut);SupervisorRunning=[bool]$taskProcess;SupervisorPid=if($taskProcess){$taskProcess.ProcessId}else{$null};ServerPid=$taskState.serverPid;State=$taskState.state;UpdatedAt=$taskState.updatedAt;TvBridgeConfigured=(Test-Path -LiteralPath (Join-Path $taskRuntime 'tv-bridge.json'));TvBridgePid=$taskBridge.serverPid;TvBridgeState=$taskBridge.state} | Format-List
  }
  'Stop' {
   $taskProcess=Get-DeskPanelSupervisor
@@ -65,6 +67,15 @@ switch($Action){
    $taskChild=Get-CimInstance Win32_Process -Filter "ProcessId=$taskServerPid"
    $taskEntry=Join-Path $taskRoot 'server/index.mjs'
    if($taskChild -and $taskChild.ParentProcessId -eq $taskProcess.ProcessId -and $taskChild.Name -eq 'node.exe' -and $taskChild.CommandLine.Contains($taskEntry)){Stop-Process -Id $taskChild.ProcessId}
+  }
+  # The couch-tv bridge started by this supervisor: python.exe running bridge/server.py with the supervisor as parent.
+  $taskBridgeFile=Join-Path $taskRuntime 'tv-bridge-status.json'
+  if(Test-Path -LiteralPath $taskBridgeFile){
+   $taskBridgePid=(Get-Content -LiteralPath $taskBridgeFile -Raw | ConvertFrom-Json).serverPid
+   if($taskBridgePid){
+    $taskBridge=Get-CimInstance Win32_Process -Filter "ProcessId=$taskBridgePid"
+    if($taskBridge -and $taskBridge.ParentProcessId -eq $taskProcess.ProcessId -and $taskBridge.Name -eq 'python.exe' -and $taskBridge.CommandLine -match 'bridge[\\/]server\.py'){Stop-Process -Id $taskBridge.ProcessId}
+   }
   }
   Write-Output 'Managed DeskPanel processes stopped. Autostart setting is unchanged.'
  }

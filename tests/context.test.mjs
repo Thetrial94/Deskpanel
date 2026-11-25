@@ -48,13 +48,13 @@ test('quick timer pause, restore, completion notice, dismiss and extension survi
  restored.reset();assert.equal(restored.deadline,null);
 });
 test('new timer screen migrates once and can be hidden; evening settings are bounded',()=>{
- const old=normalizeSettings({version:4,enabledScreens:['clock']});assert.deepEqual(old.enabledScreens,['overview','timers']);
+ const old=normalizeSettings({version:4,enabledScreens:['clock']});assert.deepEqual(old.enabledScreens,['overview','timers','tv']);
  const saved=normalizeSettings({...old,enabledScreens:['clock'],eveningStart:50,eveningEnd:-2});assert.deepEqual(saved.enabledScreens,['overview']);assert.equal(saved.eveningStart,23);assert.equal(saved.eveningEnd,0);
 });
 
 test('legacy clocks, focus and breaks merge without duplicates or losing timer storage',()=>{
  const value=normalizeSettings({version:5,screenOrder:['clock','focus','breaks','timers','weather'],enabledScreens:['clock','focus','breaks','timers'],city:null,autoRotate:false});
- assert.deepEqual(value.enabledScreens,['overview','timers']);assert.deepEqual(value.screenOrder.slice(0,3),['overview','timers','weather']);assert.equal(value.version,6);assert.equal(value.city,null);assert.equal(value.autoRotate,false);
+ assert.deepEqual(value.enabledScreens,['overview','timers','tv']);assert.deepEqual(value.screenOrder.slice(0,3),['overview','timers','weather']);assert.equal(value.version,7);assert.equal(value.city,null);assert.equal(value.autoRotate,false);
  assert.equal(value.screenOrder.some(id=>['clock','focus','breaks'].includes(id)),false);
 });
 test('overview selects the closest running timer across all three modes',()=>{
