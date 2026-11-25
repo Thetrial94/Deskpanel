@@ -1,7 +1,7 @@
 import {randomUUID} from 'node:crypto';
 import {checkRequest,readJSON} from './http-guard.mjs';
-const roles=['codex','claude','music'];
-const resources=new Set(['computer','remote','music','agents','access','health']);
+const roles=['codex','claude','music','tv'];
+const resources=new Set(['computer','remote','music','agents','access','health','tv']);
 export function nodeURL(value){
  const u=new URL(value),ip=u.hostname.split('.').map(Number);
  const privateIP=ip.length===4&&ip.every(n=>Number.isInteger(n)&&n>=0&&n<=255)&&(ip[0]===10||ip[0]===192&&ip[1]===168||ip[0]===172&&ip[1]>=16&&ip[1]<=31);
@@ -10,11 +10,28 @@ export function nodeURL(value){
 }
 export class Network {
  constructor(store,{fetcher=fetch}={}){this.store=store;this.fetcher=fetcher;}
- async config(){const n=(await this.store.get()).network||{};return {name:n.name||'Этот компьютер',nodes:n.nodes||[],bindings:{codex:'local',claude:'local',music:'local',...n.bindings}};}
- async request(node,resource,body){
+ async config(){const n=(await this.store.get()).network||{};return {name:n.name||'Этот компьютер',nodes:n.nodes||[],bindings:{codex:'local',claude:'local',music:'local',tv:'local',...n.bindings}};}
+ // The TV bridge listens only on its own computer; a hub reaches it through that computer's DeskPanel.
+ async tv(req,send,features){
+  if(!checkRequest(req,req.method==='POST')||!await features.access.authorized(req)){send(403,'{"error":"pair_required"}');return true;}
+  if(!['GET','HEAD','POST'].includes(req.method)){send(405,'{"error":"method_not_allowed"}');return true;}
+  const target=await this.target('tv');
+  if(target?.id==='local')return false;
+  if(!target){if(req.method==='POST')send(409,'{"accepted":false,"error":"tv_unavailable"}');else send(200,'{"connection":"not_configured","apps":[]}');return true;}
+  if(req.method==='POST'){
+   let body;try{body=await readJSON(req);}catch{send(400,'{"error":"invalid_tv_command"}');return true;}
+   try{const r=await this.request(target,'tv',body,40000);send(r.status===200?200:r.status===400?400:409,JSON.stringify(r.data));}
+   catch{send(409,'{"accepted":false,"error":"tv_unavailable"}');}
+   return true;
+  }
+  try{const r=await this.request(target,'tv');send(200,r.status===200?JSON.stringify(r.data):JSON.stringify({connection:r.status===403?'node_pair_required':'node_offline',apps:[]}));}
+  catch{send(200,'{"connection":"node_offline","apps":[]}');}
+  return true;
+ }
+ async request(node,resource,body,timeout=5000){
   if(!resources.has(resource))throw Error('invalid_resource');
-  const base=nodeURL(node.url),path={agents:'agents/local',music:'music/local'}[resource]||resource;
-  const response=await this.fetcher(base+'/api/'+path,{method:body?'POST':'GET',headers:{Origin:base,...(node.token?{Cookie:'deskpanel_device='+node.token}:{}),...(body?{'Content-Type':'application/json','X-DeskPanel':'1'}:{})},body:body?JSON.stringify(body):undefined,redirect:'error',signal:AbortSignal.timeout(5000)});
+  const base=nodeURL(node.url),path={agents:'agents/local',music:'music/local',tv:'tv/local'}[resource]||resource;
+  const response=await this.fetcher(base+'/api/'+path,{method:body?'POST':'GET',headers:{Origin:base,...(node.token?{Cookie:'deskpanel_device='+node.token}:{}),...(body?{'Content-Type':'application/json','X-DeskPanel':'1'}:{})},body:body?JSON.stringify(body):undefined,redirect:'error',signal:AbortSignal.timeout(timeout)});
   const reader=response.body.getReader(),chunks=[];let size=0;
   while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>1048576){await reader.cancel();throw Error('node_response_too_large');}chunks.push(value);}
   let data;try{data=JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw Error('invalid_node_response');}

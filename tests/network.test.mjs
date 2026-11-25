@@ -60,3 +60,26 @@ test('unpaired callers cannot list, modify or use nodes, including local aliases
  for(const path of ['/api/nodes','/api/nodes/local/computer','/api/nodes/pc/remote']){let status;assert.equal(await network.handle(path,req,s=>status=s,features),true);assert.equal(status,403);}
  assert.equal(calls,0);
 });
+test('the hub forwards the TV screen to the computer that runs the bridge',async t=>{
+ const data={...config()};data.network.bindings.tv='pc';
+ const store=memory(data),calls=[];let down=false,status=200;
+ const features=new Features({store,computer:{metrics:()=>({}),run:async()=>({})}});
+ features.tv.status=async()=>{throw Error('the hub must not use its own bridge');};
+ const network=new Network(store,{fetcher:async(url,options)=>{calls.push({url,method:options.method,body:options.body,cookie:options.headers.Cookie});if(down)throw Error('offline');return reply(options.method==='POST'?{accepted:true}:{connection:'connected',power:'on',apps:[]},status);}});
+ const server=createAppServer({features,network,music:{close(){}}});await new Promise(r=>server.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>server.close(r)));
+ const base='http://127.0.0.1:'+server.address().port,headers={Origin:base,'Content-Type':'application/json','X-DeskPanel':'1'};
+ assert.equal((await (await fetch(base+'/api/tv')).json()).connection,'connected');
+ assert.equal(calls.at(-1).url,'http://192.168.0.3:4317/api/tv/local');assert.equal(calls.at(-1).cookie,'deskpanel_device='+token);
+ assert.equal((await fetch(base+'/api/tv',{method:'POST',headers,body:JSON.stringify({command:'key',key:'ok'})})).status,200);
+ assert.deepEqual(JSON.parse(calls.at(-1).body),{command:'key',key:'ok'});
+ assert.equal((await fetch(base+'/api/tv',{method:'POST',headers:{...headers,Origin:'https://evil.test'},body:'{}'})).status,403);
+ status=403;assert.equal((await (await fetch(base+'/api/tv')).json()).connection,'node_pair_required');
+ down=true;assert.equal((await (await fetch(base+'/api/tv')).json()).connection,'node_offline');
+ assert.equal((await fetch(base+'/api/tv',{method:'POST',headers,body:JSON.stringify({command:'key',key:'ok'})})).status,409);
+ await store.update(s=>({...s,network:{...s.network,bindings:{...s.network.bindings,tv:null}}}));
+ assert.equal((await (await fetch(base+'/api/tv')).json()).connection,'not_configured');
+ await store.update(s=>({...s,network:{...s.network,bindings:{...s.network.bindings,tv:'local'}}}));
+ features.tv.status=async()=>({connection:'bridge_offline',apps:[]});
+ assert.equal((await (await fetch(base+'/api/tv')).json()).connection,'bridge_offline');
+ assert.equal((await (await fetch(base+'/api/tv/local')).json()).connection,'bridge_offline');
+});

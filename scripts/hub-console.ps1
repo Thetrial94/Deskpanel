@@ -71,6 +71,14 @@ function Select-DeskPanelMusic {
  Invoke-DeskPanelLocalApi -Path /api/nodes -Method Post -Body @{command='configure';bindings=@{music=$taskMatches[0].id}} | Out-Null
  Write-Output 'Music source saved. Agent sources are unchanged.'
 }
+function Select-DeskPanelTv {
+ param([Parameter(Mandatory)][ValidateNotNullOrEmpty()][string]$Name)
+ $taskNodes=Invoke-DeskPanelLocalApi -Path /api/nodes
+ $taskMatches=@($taskNodes.nodes | Where-Object {$_.name -eq $Name})
+ if($taskMatches.Count -ne 1){throw 'Expected exactly one saved computer with that name. Run Get-DeskPanelComputers.'}
+ Invoke-DeskPanelLocalApi -Path /api/nodes -Method Post -Body @{command='configure';bindings=@{tv=$taskMatches[0].id}} | Out-Null
+ Write-Output 'TV source saved. Other sources are unchanged.'
+}
 function Get-DeskPanelComputers {
  $taskResult=Invoke-DeskPanelLocalApi -Path /api/nodes
  $taskResult.nodes | Select-Object id,name,url,connection

@@ -10,11 +10,12 @@ import { readAgentSnapshot } from './bridge.mjs';
 import { Features } from './features.mjs';
 import { MusicBridge } from './music.mjs';
 import { handleMusic } from './music-http.mjs';
+import { Build } from './build.mjs';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.json':'application/json; charset=utf-8'};
 // The app loads only its own scripts and styles; inline style attributes are used for progress bars.
 const csp="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
-export function createAppServer({music=new MusicBridge(),features=new Features(),agentReader=readAgentSnapshot,weather=new Weather(),network=new Network(features.store)}={}) {
+export function createAppServer({music=new MusicBridge(),features=new Features(),agentReader=readAgentSnapshot,weather=new Weather(),network=new Network(features.store),build=new Build(root)}={}) {
   const server = createServer(async (req, res) => {
     const send = (status, body, type = 'application/json; charset=utf-8') => {
       res.writeHead(status, {'Content-Type':type,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Content-Security-Policy':csp});
@@ -22,6 +23,12 @@ export function createAppServer({music=new MusicBridge(),features=new Features()
     };
     try {
       let path = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+      if(path==='/api/build'){
+       // Public and local only: it reveals nothing but a hash, and a node's own pages must reload from their own files.
+       if(!['GET','HEAD'].includes(req.method)){send(405,'{"error":"method_not_allowed"}');return;}
+       if(!checkRequest(req)){send(403,'{"error":"invalid_origin"}');return;}
+       send(200,JSON.stringify({build:await build.id()}));return;
+      }
       if(['/api/weather','/api/cities'].includes(path)){
        if(!['GET','HEAD'].includes(req.method)){send(405,'{"error":"method_not_allowed"}');return;}
        if(!checkRequest(req)){send(403,'{"error":"invalid_origin"}');return;}
@@ -31,6 +38,9 @@ export function createAppServer({music=new MusicBridge(),features=new Features()
       }
       const routed=await network.handle(path,req,send,features);
       if(routed?.localPath)path=routed.localPath;else if(routed)return;
+      // /api/tv follows the hub's TV binding; /api/tv/local is always this computer's own bridge.
+      if(path==='/api/tv'&&await network.tv(req,send,features))return;
+      if(path==='/api/tv/local')path='/api/tv';
       if(await features.handle(path,req,res,send))return;
       if(path === '/api/music'||path === '/api/music/local'){
        // Every music request needs a paired device (or localhost): a LAN host must not drive the player unpaired.

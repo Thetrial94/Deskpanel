@@ -1,5 +1,5 @@
 // Pure helpers for the TV screen and the overview module.
-export const tvConnectionLabel=c=>({loading:'Проверяем…',pair_required:'Нужна привязка',bridge_offline:'Мост couch-tv не запущен',not_paired:'ТВ не привязан к мосту',tv_offline:'ТВ не в сети',unavailable:'Нет связи'}[c]||'Нет связи');
+export const tvConnectionLabel=c=>({loading:'Проверяем…',pair_required:'Нужна привязка',bridge_offline:'Мост couch-tv не запущен',not_paired:'ТВ не привязан к мосту',tv_offline:'ТВ не в сети',not_configured:'Телевизор не выбран',node_offline:'Компьютер с ТВ не в сети',node_pair_required:'Компьютер с ТВ не привязан',unavailable:'Нет связи'}[c]||'Нет связи');
 export function tvPlaybackLabel(state){return {playing:'Идёт',paused:'Пауза',buffering:'Загрузка',stopped:'Остановлено'}[state]||'';}
 export function tvSummary(s){
  if(!s||s.connection!=='connected')return {title:tvConnectionLabel(s?.connection),detail:'Открыть телевизор →',status:'offline'};
